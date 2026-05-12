@@ -500,7 +500,7 @@ def test_ping():
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Pyro5 SERVERTYPE for GameServer**
    - What we know: Default is `"thread"` (threaded server); `"multiplex"` is also available (select-based, single-threaded).
