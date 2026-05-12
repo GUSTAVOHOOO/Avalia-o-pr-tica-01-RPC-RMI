@@ -38,8 +38,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Project scaffold: venv (python3.11), pip install, requirements.txt, config.py, directory structure, pytest.ini, test stubs
-- [ ] 01-02-PLAN.md — Core RPC layer: GameServer (@expose, ping, register_callback), EventBroadcaster, unit tests for INFRA-01/02/03
-- [ ] 01-03-PLAN.md — Callback pipeline: broadcast_test() @oneway on GameServer, CLI test_client.py demo artifact
+- [x] 01-02-PLAN.md — Core RPC layer: GameServer (@expose, ping, register_callback), EventBroadcaster, unit tests for INFRA-01/02/03
+- [x] 01-03-PLAN.md — Callback pipeline: broadcast_test() @oneway on GameServer, CLI test_client.py demo artifact
 - [ ] 01-04-PLAN.md — Flask-SocketIO bridge: BridgeCallbackReceiver, per-thread proxy, startup retry, test_per_thread_proxy, 3-terminal smoke test checkpoint
 
 ### Phase 2: Player Session + Lobby

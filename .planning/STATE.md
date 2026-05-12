@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 01-01 bootstrap plan — venv, deps, structure, config.py, pytest stubs
-last_updated: "2026-05-12T14:32:59.093Z"
+last_updated: "2026-05-12T18:06:04.948Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 01 (RPC Infrastructure + Callback Pipeline) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-05-12
 
-Progress: [███░░░░░░░] 25%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -69,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase ?]: python3.11 -m venv (not python3) to avoid mise's Python 3.8.20 default — Pyro5 5.16 supported on 3.9+
 - [Phase ?]: NS_HOST reads from PYRO_NS_HOST env var (default 127.0.0.1) — satisfies D-02, avoids UDP broadcast issue on demo day
 - [Phase ?]: pytest stubs use pytest.skip rather than NotImplementedError — cleaner skipped status in CI
+- [01-03]: broadcast_test() @oneway prevents deadlock when callback receivers registered (D-09)
+- [01-03]: test_client.py uses PYRONAME with explicit @NS_HOST to avoid UDP broadcast (D-01)
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-12T14:32:59.075Z
-Stopped at: Completed 01-01 bootstrap plan — venv, deps, structure, config.py, pytest stubs
+Last session: 2026-05-12T18:06:04.925Z
+Stopped at: Completed 01-03: broadcast_test() @oneway + test_client.py smoke test
 Resume file: None
