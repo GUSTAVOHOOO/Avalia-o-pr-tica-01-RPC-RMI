@@ -92,9 +92,11 @@ def test_broadcast_delivery():
 
         def __init__(self):
             self.received = []
+            self.event = threading.Event()
 
         def on_test_event(self, data):
             self.received.append(data)
+            self.event.set()
 
     # Start daemons for both GameServer and the callback receiver
     server = GameServer()
@@ -104,15 +106,12 @@ def test_broadcast_delivery():
     cb_daemon, cb_uri = _start_daemon(receiver, "test.callback.receiver")
 
     try:
-        # Register the receiver with the broadcaster (direct access, not via RPC,
-        # to avoid needing @oneway on the test path — per task spec)
         server.broadcaster.register_callback("r1", cb_uri)
-
-        # Trigger broadcast directly on the broadcaster (also per task spec)
         server.broadcaster.broadcast("test_event", {"msg": "hello"})
 
-        # Allow the Pyro5 network call to complete
-        time.sleep(0.2)
+        # Wait until on_test_event signals delivery (up to 5 s)
+        delivered = receiver.event.wait(timeout=5)
+        assert delivered, "Timed out waiting for broadcast delivery (>5 s)"
 
         assert len(receiver.received) == 1, (
             f"Expected 1 received event, got {len(receiver.received)}"

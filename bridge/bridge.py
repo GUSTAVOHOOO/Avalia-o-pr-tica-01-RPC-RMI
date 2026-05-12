@@ -29,7 +29,7 @@ import config
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "dev-secret"
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(24).hex())
 socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*",
                     logger=True, engineio_logger=False)
 
