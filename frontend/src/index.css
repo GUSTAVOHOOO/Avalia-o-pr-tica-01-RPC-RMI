@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    background-color: #0f1117;
+    color: #f1f5f9;
+  }
+
+  *:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+}
