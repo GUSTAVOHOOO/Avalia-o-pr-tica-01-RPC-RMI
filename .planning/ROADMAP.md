@@ -55,7 +55,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — GameServer session layer: GameSession/PlayerInfo dataclasses, create_game, join_game, start_game, leave_game, 6 unit tests (SESSION-01 to SESSION-06)
+- [x] 02-01-PLAN.md — GameServer session layer: GameSession/PlayerInfo dataclasses, create_game, join_game, start_game, leave_game, 6 unit tests (SESSION-01 to SESSION-06)
 - [ ] 02-02-PLAN.md — Bridge + React frontend: session Socket.IO handlers, room isolation, BridgeCallbackReceiver extensions, Vite+React+TS scaffold, all 5 lobby-flow pages, 4-terminal smoke test checkpoint
 **UI hint**: yes
 
@@ -144,7 +144,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
-| 2. Player Session + Lobby | 0/2 | Not started | - |
+| 2. Player Session + Lobby | 1/2 | In Progress|  |
 | 3. Phase Machine + Timer | 0/TBD | Not started | - |
 | 4. Core Turn Loop | 0/TBD | Not started | - |
 | 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |

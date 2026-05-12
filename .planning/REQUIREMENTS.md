@@ -15,12 +15,12 @@
 
 ### Gerenciamento de Sessão (SESSION)
 
-- [ ] **SESSION-01**: Jogador pode criar partida informando apelido e número máximo de turnos (3, 5, 7 ou 10)
-- [ ] **SESSION-02**: Partida gera código de sessão de 6 caracteres compartilhável via link
-- [ ] **SESSION-03**: Jogador pode entrar em partida existente via código ou link de convite, informando apelido
-- [ ] **SESSION-04**: Sistema rejeita entrada de novos jogadores após início da partida com mensagem "jogo em andamento"
-- [ ] **SESSION-05**: Lobby exibe lista de jogadores conectados em tempo real via evento `PLAYER_JOINED`
-- [ ] **SESSION-06**: Host (primeiro jogador) pode iniciar o jogo quando ≥2 jogadores estão no lobby
+- [x] **SESSION-01**: Jogador pode criar partida informando apelido e número máximo de turnos (3, 5, 7 ou 10)
+- [x] **SESSION-02**: Partida gera código de sessão de 6 caracteres compartilhável via link
+- [x] **SESSION-03**: Jogador pode entrar em partida existente via código ou link de convite, informando apelido
+- [x] **SESSION-04**: Sistema rejeita entrada de novos jogadores após início da partida com mensagem "jogo em andamento"
+- [x] **SESSION-05**: Lobby exibe lista de jogadores conectados em tempo real via evento `PLAYER_JOINED`
+- [x] **SESSION-06**: Host (primeiro jogador) pode iniciar o jogo quando ≥2 jogadores estão no lobby
 - [ ] **SESSION-07**: Se host desconecta no lobby, próximo jogador na ordem de entrada assume como host
 
 ### Máquina de Estados de Turno (TURN)
@@ -148,12 +148,12 @@
 | INFRA-06 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
 | INFRA-07 | Phase 7: Reconnection + End-of-Game | Pending |
 | INFRA-08 | Phase 7: Reconnection + End-of-Game | Pending |
-| SESSION-01 | Phase 2: Player Session + Lobby | Pending |
-| SESSION-02 | Phase 2: Player Session + Lobby | Pending |
-| SESSION-03 | Phase 2: Player Session + Lobby | Pending |
-| SESSION-04 | Phase 2: Player Session + Lobby | Pending |
-| SESSION-05 | Phase 2: Player Session + Lobby | Pending |
-| SESSION-06 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-01 | Phase 2: Player Session + Lobby | Complete |
+| SESSION-02 | Phase 2: Player Session + Lobby | Complete |
+| SESSION-03 | Phase 2: Player Session + Lobby | Complete |
+| SESSION-04 | Phase 2: Player Session + Lobby | Complete |
+| SESSION-05 | Phase 2: Player Session + Lobby | Complete |
+| SESSION-06 | Phase 2: Player Session + Lobby | Complete |
 | SESSION-07 | Phase 7: Reconnection + End-of-Game | Pending |
 | TURN-01 | Phase 3: Phase Machine + Timer | Pending |
 | TURN-02 | Phase 3: Phase Machine + Timer | Pending |

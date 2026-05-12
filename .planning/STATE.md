@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-05-12T19:32:59.995Z"
-last_activity: 2026-05-12 -- Phase 02 planning complete
+last_updated: "2026-05-12T20:19:36.118Z"
+last_activity: 2026-05-12
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
-  percent: 67
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Demonstrar arquitetura distribuída event-driven funcional: servidor Pyro5 com callbacks push para todos os clientes, mecânicas de jogo completas e interface web reagindo em tempo real com 2–4 jogadores simultâneos
-**Current focus:** Phase 01 — RPC Infrastructure + Callback Pipeline
+**Current focus:** Phase 2 — player-session-lobby
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 2 (player-session-lobby) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-05-12 -- Phase 02 planning complete
+Last activity: 2026-05-12
 
-Progress: [██████████] 100%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 *Updated after each plan completion*
 | Phase 01-rpc-infrastructure-callback-pipeline P01 | 2 | 2 tasks | 9 files |
 | Phase 01-rpc-infrastructure-callback-pipeline P04 | multi-session | 3 tasks | 4 files |
+| Phase 02-player-session-lobby P01 | 2 | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-12T19:12:59.050Z
+Last session: 2026-05-12T20:19:36.104Z
 Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-player-session-lobby/02-UI-SPEC.md
+Resume file: None
