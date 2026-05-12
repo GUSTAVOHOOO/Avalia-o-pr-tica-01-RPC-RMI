@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01 bootstrap plan — venv, deps, structure, config.py, pytest stubs
-last_updated: "2026-05-12T18:06:04.948Z"
+stopped_at: "Completed 01-04: Flask-SocketIO bridge + BridgeCallbackReceiver + per-thread proxy + pipeline verified"
+last_updated: "2026-05-12T18:31:18.289Z"
 last_activity: 2026-05-12
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-12)
 ## Current Position
 
 Phase: 01 (RPC Infrastructure + Callback Pipeline) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-05-12
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [████████░░] 75%
 
 *Updated after each plan completion*
 | Phase 01-rpc-infrastructure-callback-pipeline P01 | 2 | 2 tasks | 9 files |
+| Phase 01-rpc-infrastructure-callback-pipeline P04 | multi-session | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase ?]: pytest stubs use pytest.skip rather than NotImplementedError — cleaner skipped status in CI
 - [01-03]: broadcast_test() @oneway prevents deadlock when callback receivers registered (D-09)
 - [01-03]: test_client.py uses PYRONAME with explicit @NS_HOST to avoid UDP broadcast (D-01)
+- [Phase ?]: BridgeCallbackReceiver stores URIs (not Proxy objects) — creates fresh Proxy per broadcast() call; Pyro5 proxies not thread-safe across threads (C2 pitfall)
+- [Phase ?]: allow_unsafe_werkzeug=True required in socketio.run() for Flask-SocketIO dev server under newer Werkzeug
+- [Phase ?]: All network binds to 127.0.0.1 loopback in Phase 1 — never 0.0.0.0 (T-01-09 mitigated)
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-12T18:06:04.925Z
-Stopped at: Completed 01-03: broadcast_test() @oneway + test_client.py smoke test
+Last session: 2026-05-12T18:31:18.270Z
+Stopped at: Completed 01-04: Flask-SocketIO bridge + BridgeCallbackReceiver + per-thread proxy + pipeline verified
 Resume file: None

@@ -12,7 +12,7 @@ Eight phases built inside-out: core Pyro5 callback infrastructure first, then lo
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: RPC Infrastructure + Callback Pipeline** - Three processes running; server-pushed Pyro5 callback arrives at CLI client without client requesting it
+- [x] **Phase 1: RPC Infrastructure + Callback Pipeline** - Three processes running; server-pushed Pyro5 callback arrives at CLI client without client requesting it (completed 2026-05-12)
 - [ ] **Phase 2: Player Session + Lobby** - Players create rooms, join via code, lobby list updates in real time, host starts game
 - [ ] **Phase 3: Phase Machine + Timer** - Full HINT→GUESS→EXCHANGE→SPY→SCORING cycle with auto-timeout transitions
 - [ ] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated
@@ -34,13 +34,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A 3-terminal smoke test (Name Server + GameServer + CLI client) shows a server-initiated event arriving at the CLI client as a Pyro5 callback without the client having polled or requested it — the BridgeCallbackReceiver daemon is running and registered
   4. Flask-SocketIO bridge starts with `async_mode='threading'` confirmed in startup log; each handler thread creates its own Pyro5 proxy (verified by logging proxy id per thread)
   5. Sending a test broadcast from the GameServer causes the event to appear in the bridge's Socket.IO emit log, confirming the full callback pipeline: GameServer `@oneway` → BridgeCallbackReceiver → `socketio.emit()`
-**Plans:** 1/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Project scaffold: venv (python3.11), pip install, requirements.txt, config.py, directory structure, pytest.ini, test stubs
 - [x] 01-02-PLAN.md — Core RPC layer: GameServer (@expose, ping, register_callback), EventBroadcaster, unit tests for INFRA-01/02/03
 - [x] 01-03-PLAN.md — Callback pipeline: broadcast_test() @oneway on GameServer, CLI test_client.py demo artifact
-- [ ] 01-04-PLAN.md — Flask-SocketIO bridge: BridgeCallbackReceiver, per-thread proxy, startup retry, test_per_thread_proxy, 3-terminal smoke test checkpoint
+- [x] 01-04-PLAN.md — Flask-SocketIO bridge: BridgeCallbackReceiver, per-thread proxy, startup retry, test_per_thread_proxy, 3-terminal smoke test checkpoint
 
 ### Phase 2: Player Session + Lobby
 **Goal**: Players can create a room, share a 6-character code, join the room, see each other in the lobby list in real time, and the host can start the game
@@ -139,7 +139,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. RPC Infrastructure + Callback Pipeline | 1/4 | In Progress|  |
+| 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
 | 2. Player Session + Lobby | 0/TBD | Not started | - |
 | 3. Phase Machine + Timer | 0/TBD | Not started | - |
 | 4. Core Turn Loop | 0/TBD | Not started | - |
