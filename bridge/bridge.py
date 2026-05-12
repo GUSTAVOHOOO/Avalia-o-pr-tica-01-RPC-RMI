@@ -19,8 +19,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import Pyro5.api
 import Pyro5.errors
-from flask import Flask
-from flask_socketio import SocketIO
+from flask import Flask, request, send_from_directory
+from flask_socketio import SocketIO, join_room
 
 import config
 
@@ -61,6 +61,36 @@ class BridgeCallbackReceiver:
             sys.stderr.write(f"[BRIDGE] ERROR: {exc}\n")
             sys.stderr.flush()
 
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_player_joined(self, data: dict):
+        """Receives PLAYER_JOINED push from GameServer; routes to correct Socket.IO room."""
+        try:
+            socketio.emit("player_joined", data, to=data["room_code"])
+            print(f"[BRIDGE] player_joined emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_player_joined: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_game_started(self, data: dict):
+        """Receives GAME_STARTED push from GameServer; routes to correct Socket.IO room."""
+        try:
+            socketio.emit("game_started", data, to=data["room_code"])
+            print(f"[BRIDGE] game_started emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_game_started: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_host_changed(self, data: dict):
+        """Receives HOST_CHANGED push from GameServer when host leaves; routes to room."""
+        try:
+            socketio.emit("host_changed", data, to=data["room_code"])
+            print(f"[BRIDGE] host_changed emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_host_changed: {exc}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Callback daemon startup — binds receiver to a loopback Pyro5 daemon
@@ -79,6 +109,17 @@ def start_callback_daemon() -> tuple:
     t.start()
     return str(uri), daemon
 
+
+# ---------------------------------------------------------------------------
+# Module-level state (D-07)
+# ---------------------------------------------------------------------------
+
+# Maps request.sid → player_id; populated on create_game / join_game (D-07)
+_sid_to_player: dict = {}
+
+# Bridge callback URI set in __main__ after start_callback_daemon(); handlers
+# read this to pass the bridge's receiver URI to GameServer methods (Pitfall 2)
+_cb_uri: str = ""
 
 # ---------------------------------------------------------------------------
 # Per-thread Pyro5 proxy (D-10) — each Flask-SocketIO handler thread gets its
@@ -152,15 +193,108 @@ def handle_ping():
     return result
 
 
+@socketio.on("create_game")
+def handle_create_game(data):
+    """Create a new game session and join the Socket.IO room for that session.
+
+    Payload: {player_name: str, max_turns: int}
+    Returns (as ack): {player_id, room_code, is_host} or {error: str}
+    """
+    proxy = get_game_server_proxy()
+    result = proxy.create_game(
+        data["player_name"], _cb_uri, int(data["max_turns"])
+    )
+    if "error" not in result:
+        _sid_to_player[request.sid] = result["player_id"]
+        join_room(result["room_code"])
+        print(
+            f"[BRIDGE] create_game: player {result['player_id']} "
+            f"joined room {result['room_code']}", flush=True
+        )
+    return result
+
+
+@socketio.on("join_game")
+def handle_join_game(data):
+    """Join an existing game session's Socket.IO room.
+
+    Payload: {player_name: str, room_code: str}
+    Returns (as ack): {player_id, room_code, is_host} or {error: str}
+    """
+    proxy = get_game_server_proxy()
+    result = proxy.join_game(
+        data["player_name"], _cb_uri, data["room_code"]
+    )
+    if "error" not in result:
+        _sid_to_player[request.sid] = result["player_id"]
+        join_room(result["room_code"])
+        print(
+            f"[BRIDGE] join_game: player {result['player_id']} "
+            f"joined room {result['room_code']}", flush=True
+        )
+    return result
+
+
+@socketio.on("start_game")
+def handle_start_game(data):
+    """Request game start — only valid for host with ≥2 players in the session.
+
+    Payload: {max_turns: int} (player_id resolved server-side via _sid_to_player)
+    Returns (as ack): {success: bool} or {error: str}
+    """
+    player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    max_turns = int(data.get("max_turns", 5))
+    success = proxy.start_game(player_id, max_turns)
+    if not success:
+        socketio.emit(
+            "start_game_error",
+            {"error": "Nao autorizado ou jogadores insuficientes"},
+            to=request.sid,
+        )
+    return {"success": success}
+
+
+@socketio.on("disconnect")
+def handle_disconnect(reason):
+    """On disconnect, remove player from session via leave_game RPC."""
+    player_id = _sid_to_player.pop(request.sid, None)
+    if player_id:
+        try:
+            proxy = get_game_server_proxy()
+            proxy.leave_game(player_id)
+            print(f"[BRIDGE] disconnect: player {player_id} left (reason: {reason})", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] leave_game failed for {player_id}: {exc}", flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Flask catch-all — serves React SPA for all non-Socket.IO routes (D-10, D-11)
+# Registered AFTER socketio init to avoid shadowing Socket.IO routes (Pitfall 3)
+# ---------------------------------------------------------------------------
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_spa(path):
+    """Serve frontend dist assets or fall back to index.html for React Router."""
+    full_path = os.path.join(config.FRONTEND_DIST_PATH, path)
+    if path and os.path.exists(full_path):
+        return send_from_directory(config.FRONTEND_DIST_PATH, path)
+    return send_from_directory(config.FRONTEND_DIST_PATH, "index.html")
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    cb_uri, _daemon = start_callback_daemon()
-    print(f"[BRIDGE] Callback receiver URI: {cb_uri}")
+    global _cb_uri
+    _cb_uri, _daemon = start_callback_daemon()
+    print(f"[BRIDGE] Callback receiver URI: {_cb_uri}")
 
-    if not connect_to_game_server(cb_uri):
+    if not connect_to_game_server(_cb_uri):
         sys.exit(1)
 
     socketio.run(app, host="127.0.0.1", port=config.BRIDGE_PORT,
