@@ -138,16 +138,74 @@
 
 ## Traceability
 
-| REQ-ID | Phase |
-|--------|-------|
-| INFRA-01 to INFRA-06 | Phase 1: RPC Infrastructure |
-| INFRA-07, INFRA-08, SESSION-07 | Phase 7: Reconnection |
-| SESSION-01 to SESSION-06 | Phase 2: Player Session + Lobby |
-| TURN-01 to TURN-04 | Phase 3: Phase Machine + Timer |
-| HINT-01 to HINT-04, GUESS-01 to GUESS-05, IMAGE-01 to IMAGE-03 | Phase 4: Core Turn Loop |
-| EXCHANGE-01 to EXCHANGE-06, SPY-01 to SPY-05 | Phase 5: Exchange + Spy |
-| SCORE-01 to SCORE-05 | Phase 4 (scoring) + Phase 5 (spy scoring) |
-| GUESS-03 | Phase 6: Synonym Arbitration |
-| POSTGAME-01 to POSTGAME-04, CHAT-01 to CHAT-04 | Phase 7: Reconnection + End-of-Game |
-| UI-01 to UI-10 | Phase 8: UI Polish |
-| REPORT-01 to REPORT-04 | Phase 8 |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| INFRA-01 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-02 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-03 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-04 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-05 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-06 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-07 | Phase 7: Reconnection + End-of-Game | Pending |
+| INFRA-08 | Phase 7: Reconnection + End-of-Game | Pending |
+| SESSION-01 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-02 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-03 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-04 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-05 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-06 | Phase 2: Player Session + Lobby | Pending |
+| SESSION-07 | Phase 7: Reconnection + End-of-Game | Pending |
+| TURN-01 | Phase 3: Phase Machine + Timer | Pending |
+| TURN-02 | Phase 3: Phase Machine + Timer | Pending |
+| TURN-03 | Phase 3: Phase Machine + Timer | Pending |
+| TURN-04 | Phase 3: Phase Machine + Timer | Pending |
+| HINT-01 | Phase 4: Core Turn Loop | Pending |
+| HINT-02 | Phase 4: Core Turn Loop | Pending |
+| HINT-03 | Phase 4: Core Turn Loop | Pending |
+| HINT-04 | Phase 4: Core Turn Loop | Pending |
+| GUESS-01 | Phase 4: Core Turn Loop | Pending |
+| GUESS-02 | Phase 4: Core Turn Loop | Pending |
+| GUESS-03 | Phase 6: Synonym Arbitration | Pending |
+| GUESS-04 | Phase 4: Core Turn Loop | Pending |
+| GUESS-05 | Phase 4: Core Turn Loop | Pending |
+| EXCHANGE-01 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-02 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-03 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-04 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-05 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-06 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SPY-01 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SPY-02 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SPY-03 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SPY-04 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SPY-05 | Phase 5: Exchange + Spy Mechanics | Pending |
+| SCORE-01 | Phase 4: Core Turn Loop | Pending |
+| SCORE-02 | Phase 4: Core Turn Loop | Pending |
+| SCORE-03 | Phase 4: Core Turn Loop | Pending |
+| SCORE-04 | Phase 4: Core Turn Loop | Pending |
+| SCORE-05 | Phase 4: Core Turn Loop | Pending |
+| IMAGE-01 | Phase 4: Core Turn Loop | Pending |
+| IMAGE-02 | Phase 4: Core Turn Loop | Pending |
+| IMAGE-03 | Phase 4: Core Turn Loop | Pending |
+| CHAT-01 | Phase 7: Reconnection + End-of-Game | Pending |
+| CHAT-02 | Phase 7: Reconnection + End-of-Game | Pending |
+| CHAT-03 | Phase 7: Reconnection + End-of-Game | Pending |
+| CHAT-04 | Phase 7: Reconnection + End-of-Game | Pending |
+| POSTGAME-01 | Phase 7: Reconnection + End-of-Game | Pending |
+| POSTGAME-02 | Phase 7: Reconnection + End-of-Game | Pending |
+| POSTGAME-03 | Phase 7: Reconnection + End-of-Game | Pending |
+| POSTGAME-04 | Phase 7: Reconnection + End-of-Game | Pending |
+| UI-01 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-02 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-03 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-04 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-05 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-06 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-07 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-08 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-09 | Phase 8: UI Polish + Technical Report | Pending |
+| UI-10 | Phase 8: UI Polish + Technical Report | Pending |
+| REPORT-01 | Phase 8: UI Polish + Technical Report | Pending |
+| REPORT-02 | Phase 8: UI Polish + Technical Report | Pending |
+| REPORT-03 | Phase 8: UI Polish + Technical Report | Pending |
+| REPORT-04 | Phase 8: UI Polish + Technical Report | Pending |
