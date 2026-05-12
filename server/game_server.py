@@ -51,6 +51,19 @@ class GameServer:
         self.broadcaster.register_callback(player_id, callback_uri)
         return True
 
+    @Pyro5.api.oneway
+    def broadcast_test(self, message: str) -> None:
+        """Fire-and-forget broadcast to all registered callbacks.
+
+        Decorated with @oneway so the caller returns immediately without
+        waiting for callbacks to complete — prevents deadlock when a
+        callback receiver proxy is registered (D-09).
+
+        Args:
+            message: Arbitrary string payload included in the test event data.
+        """
+        self.broadcaster.broadcast("test_event", {"message": message, "source": "broadcast_test"})
+
 
 if __name__ == "__main__":
     server = GameServer()
