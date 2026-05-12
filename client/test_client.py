@@ -11,9 +11,13 @@ Callback daemon binds to 127.0.0.1 only (T-01-07 — loopback).
 Game server is discovered via PYRONAME lookup — no hardcoded IP:port (INFRA-06).
 """
 
+import os
 import sys
 import threading
 import time
+
+# Allow `import config` when running as `python client/test_client.py`
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import Pyro5.api
 

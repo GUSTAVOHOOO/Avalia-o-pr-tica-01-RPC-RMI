@@ -9,9 +9,13 @@ Key design decisions:
   - All daemons and Flask bind to 127.0.0.1 only (T-01-09)
 """
 
+import os
 import sys
 import threading
 import time
+
+# Allow `import config` when running as `python bridge/bridge.py`
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import Pyro5.api
 import Pyro5.errors
@@ -48,8 +52,14 @@ class BridgeCallbackReceiver:
     @Pyro5.api.callback
     def on_test_event(self, data: dict):
         """Receives a broadcast_test() push from GameServer and emits to browsers."""
-        socketio.emit("game_event", data)
-        print(f"[BRIDGE] game_event emitted: {data}")
+        try:
+            socketio.emit("game_event", data)
+            print(f"[BRIDGE] game_event emitted: {data}", flush=True)
+            sys.stdout.flush()
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_test_event: {exc}", flush=True)
+            sys.stderr.write(f"[BRIDGE] ERROR: {exc}\n")
+            sys.stderr.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -153,4 +163,5 @@ if __name__ == "__main__":
     if not connect_to_game_server(cb_uri):
         sys.exit(1)
 
-    socketio.run(app, host="127.0.0.1", port=config.BRIDGE_PORT)
+    socketio.run(app, host="127.0.0.1", port=config.BRIDGE_PORT,
+                 allow_unsafe_werkzeug=True)

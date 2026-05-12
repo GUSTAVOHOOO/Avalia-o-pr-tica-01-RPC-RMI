@@ -11,26 +11,31 @@ import Pyro5.api
 
 
 class EventBroadcaster:
-    """Manages registered callback proxies and delivers events to them."""
+    """Manages registered callback URIs and delivers events to them.
+
+    Stores URI strings (not Proxy objects) — Pyro5 proxies are not thread-safe
+    and must be created in the thread that uses them (C2 pitfall).
+    """
 
     def __init__(self):
-        self.callbacks = {}          # player_id -> Pyro5.api.Proxy
+        self.callbacks = {}          # player_id -> uri str
         self.lock = threading.Lock()
 
     def register_callback(self, player_id: str, callback_uri: str):
-        """Store (or overwrite) the callback proxy for player_id.
+        """Store (or overwrite) the callback URI for player_id.
 
-        A second call with the same player_id replaces the existing proxy.
+        A second call with the same player_id replaces the existing entry.
         """
         with self.lock:
-            self.callbacks[player_id] = Pyro5.api.Proxy(callback_uri)
+            self.callbacks[player_id] = callback_uri
 
     def broadcast(self, event_type: str, data: dict, exclude=None):
         """Fan-out event_type to all registered callbacks.
 
-        Snapshots the callbacks dict under lock, then iterates outside the lock
-        so network I/O does not block other threads from registering callbacks.
-        Failed proxies are removed from self.callbacks after the iteration.
+        Snapshots the URI dict under lock, creates a fresh proxy per call in
+        the calling thread (Pyro5 proxies are not thread-safe — C2 pitfall),
+        iterates outside the lock so network I/O doesn't block registration.
+        Failed entries are removed from self.callbacks after the iteration.
 
         Args:
             event_type: Name appended to "on_" to form the method name called on
@@ -42,16 +47,18 @@ class EventBroadcaster:
         failed = []
 
         with self.lock:
-            snapshot = dict(self.callbacks)   # copy under lock; iterate outside
+            snapshot = dict(self.callbacks)   # copy URIs under lock; iterate outside
 
-        for player_id, proxy in snapshot.items():
+        for player_id, uri in snapshot.items():
             if player_id in exclude:
                 continue
             try:
-                method = getattr(proxy, "on_" + event_type.lower())
-                method(data)
+                with Pyro5.api.Proxy(uri) as proxy:
+                    method = getattr(proxy, "on_" + event_type.lower())
+                    method(data)
             except Exception as e:
-                print(f"[EventBroadcaster] Callback failed for {player_id}: {e}")
+                print(f"[EventBroadcaster] Callback failed for {player_id}: {e}",
+                      flush=True)
                 failed.append(player_id)
 
         if failed:
@@ -60,21 +67,19 @@ class EventBroadcaster:
                     self.callbacks.pop(pid, None)
 
     def send_to_player(self, player_id: str, event_type: str, data: dict):
-        """Deliver event_type to a single registered player.
-
-        Raises KeyError silently (caught internally) if player_id is not
-        registered — the caller does not need to handle missing players.
-        """
+        """Deliver event_type to a single registered player."""
         with self.lock:
-            proxy = self.callbacks.get(player_id)
+            uri = self.callbacks.get(player_id)
 
-        if proxy is None:
+        if uri is None:
             return
 
         try:
-            method = getattr(proxy, "on_" + event_type.lower())
-            method(data)
+            with Pyro5.api.Proxy(uri) as proxy:
+                method = getattr(proxy, "on_" + event_type.lower())
+                method(data)
         except Exception as e:
-            print(f"[EventBroadcaster] send_to_player failed for {player_id}: {e}")
+            print(f"[EventBroadcaster] send_to_player failed for {player_id}: {e}",
+                  flush=True)
             with self.lock:
                 self.callbacks.pop(player_id, None)

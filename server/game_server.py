@@ -8,8 +8,12 @@ Name Server lookup always passes host=config.NS_HOST to avoid UDP broadcast
 (D-01/D-02).
 """
 
+import os
 import sys
 import threading
+
+# Allow `import config` when running as `python server/game_server.py`
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import Pyro5.api
 
