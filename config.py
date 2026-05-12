@@ -12,3 +12,10 @@ BRIDGE_PORT = 5000
 
 # Pyro5 registration name for the game server — used in both server and clients
 GAME_SERVER_NAME = "game.server"
+
+# Path to the compiled React frontend dist directory (D-09)
+# Override via FRONTEND_DIST env var; default to frontend/dist next to this file
+FRONTEND_DIST_PATH = os.environ.get(
+    "FRONTEND_DIST",
+    os.path.join(os.path.dirname(__file__), "frontend", "dist"),
+)
