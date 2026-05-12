@@ -4,12 +4,12 @@
 
 ### RPC Infrastructure (INFRA)
 
-- [ ] **INFRA-01**: Sistema executa um Pyro5 daemon com GameServer exposto via `@Pyro5.api.expose`, acessível via Name Server
-- [ ] **INFRA-02**: Clientes registram callback URI no servidor via `register_callback(player_id, callback_uri)` para receber eventos push
-- [ ] **INFRA-03**: EventBroadcaster envia eventos para todos os callbacks registrados usando métodos `@oneway` (não bloqueia o thread do servidor)
-- [ ] **INFRA-04**: Bridge Flask-SocketIO (async_mode='threading') converte chamadas WebSocket do browser em chamadas Pyro5 RPC e repassa callbacks Pyro5 como eventos Socket.IO
-- [ ] **INFRA-05**: Bridge usa proxy Pyro5 por thread (não compartilhado) para evitar deadlock de concorrência
-- [ ] **INFRA-06**: Pyro5 Name Server disponível para descoberta de serviços (sem URIs hardcoded no cliente)
+- [x] **INFRA-01**: Sistema executa um Pyro5 daemon com GameServer exposto via `@Pyro5.api.expose`, acessível via Name Server
+- [x] **INFRA-02**: Clientes registram callback URI no servidor via `register_callback(player_id, callback_uri)` para receber eventos push
+- [x] **INFRA-03**: EventBroadcaster envia eventos para todos os callbacks registrados usando métodos `@oneway` (não bloqueia o thread do servidor)
+- [x] **INFRA-04**: Bridge Flask-SocketIO (async_mode='threading') converte chamadas WebSocket do browser em chamadas Pyro5 RPC e repassa callbacks Pyro5 como eventos Socket.IO
+- [x] **INFRA-05**: Bridge usa proxy Pyro5 por thread (não compartilhado) para evitar deadlock de concorrência
+- [x] **INFRA-06**: Pyro5 Name Server disponível para descoberta de serviços (sem URIs hardcoded no cliente)
 - [ ] **INFRA-07**: Jogador desconectado é identificado por falha de callback e removido da lista de callbacks ativos
 - [ ] **INFRA-08**: Cliente web armazena UUID de sessão em localStorage; ao recarregar a página chama `get_game_state()` para restaurar estado
 
@@ -140,12 +140,12 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| INFRA-01 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
-| INFRA-02 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
-| INFRA-03 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
-| INFRA-04 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
-| INFRA-05 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
-| INFRA-06 | Phase 1: RPC Infrastructure + Callback Pipeline | Pending |
+| INFRA-01 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
+| INFRA-02 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
+| INFRA-03 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
+| INFRA-04 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
+| INFRA-05 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
+| INFRA-06 | Phase 1: RPC Infrastructure + Callback Pipeline | Complete |
 | INFRA-07 | Phase 7: Reconnection + End-of-Game | Pending |
 | INFRA-08 | Phase 7: Reconnection + End-of-Game | Pending |
 | SESSION-01 | Phase 2: Player Session + Lobby | Pending |

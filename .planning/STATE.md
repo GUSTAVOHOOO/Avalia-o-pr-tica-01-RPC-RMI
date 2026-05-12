@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-05-12T14:25:49.855Z"
-last_activity: 2026-05-12 -- Phase 01 planning complete
+stopped_at: Completed 01-01 bootstrap plan — venv, deps, structure, config.py, pytest stubs
+last_updated: "2026-05-12T14:32:59.093Z"
+last_activity: 2026-05-12
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 25
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Demonstrar arquitetura distribuída event-driven funcional: servidor Pyro5 com callbacks push para todos os clientes, mecânicas de jogo completas e interface web reagindo em tempo real com 2–4 jogadores simultâneos
-**Current focus:** Phase 1 — RPC Infrastructure + Callback Pipeline
+**Current focus:** Phase 01 — RPC Infrastructure + Callback Pipeline
 
 ## Current Position
 
-Phase: 1 of 8 (RPC Infrastructure + Callback Pipeline)
-Plan: 0 of TBD in current phase
+Phase: 01 (RPC Infrastructure + Callback Pipeline) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-05-12 -- Phase 01 planning complete
+Last activity: 2026-05-12
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-rpc-infrastructure-callback-pipeline P01 | 2 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Init]: No HTML/CSS work until Phase 1 3-terminal smoke test passes (M4 pitfall — research constraint)
 - [Init]: Pyro5 proxies in Bridge are per-thread via `threading.local()` — never shared (C2 pitfall)
 - [Init]: Images served as Flask static file URLs — never raw bytes through Pyro5 serialization (C4 pitfall)
+- [Phase ?]: python3.11 -m venv (not python3) to avoid mise's Python 3.8.20 default — Pyro5 5.16 supported on 3.9+
+- [Phase ?]: NS_HOST reads from PYRO_NS_HOST env var (default 127.0.0.1) — satisfies D-02, avoids UDP broadcast issue on demo day
+- [Phase ?]: pytest stubs use pytest.skip rather than NotImplementedError — cleaner skipped status in CI
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-12T14:03:40.840Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-rpc-infrastructure-callback-pipeline/01-CONTEXT.md
+Last session: 2026-05-12T14:32:59.075Z
+Stopped at: Completed 01-01 bootstrap plan — venv, deps, structure, config.py, pytest stubs
+Resume file: None
