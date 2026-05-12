@@ -52,7 +52,11 @@ Plans:
   2. Player B joins using the room code and a different nickname; both Player A's and Player B's browser lobbies immediately show both players (real-time via `PLAYER_JOINED` callback, no page refresh)
   3. Attempting to join a room where the game is already in progress returns the message "jogo em andamento" and the player is not added
   4. The "Iniciar Jogo" button is visible and enabled only for the host and only when at least 2 players are in the lobby; clicking it transitions the server state and all clients receive the transition event
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — GameServer session layer: GameSession/PlayerInfo dataclasses, create_game, join_game, start_game, leave_game, 6 unit tests (SESSION-01 to SESSION-06)
+- [ ] 02-02-PLAN.md — Bridge + React frontend: session Socket.IO handlers, room isolation, BridgeCallbackReceiver extensions, Vite+React+TS scaffold, all 5 lobby-flow pages, 4-terminal smoke test checkpoint
 **UI hint**: yes
 
 ### Phase 3: Phase Machine + Timer
@@ -140,7 +144,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
-| 2. Player Session + Lobby | 0/TBD | Not started | - |
+| 2. Player Session + Lobby | 0/2 | Not started | - |
 | 3. Phase Machine + Timer | 0/TBD | Not started | - |
 | 4. Core Turn Loop | 0/TBD | Not started | - |
 | 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |
