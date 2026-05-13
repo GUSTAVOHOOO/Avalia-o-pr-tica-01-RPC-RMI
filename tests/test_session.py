@@ -192,7 +192,7 @@ def test_start_game_validation():
             room_code = create_result["room_code"]
 
             # Only 1 player — start_game must return False even for host
-            result_one_player = proxy.start_game(host_player_id, 5)
+            result_one_player = proxy.start_game(host_player_id)
             assert result_one_player is False, (
                 f"start_game must return False with only 1 player, got {result_one_player}"
             )
@@ -202,13 +202,13 @@ def test_start_game_validation():
             non_host_player_id = join_result["player_id"]
 
             # Non-host tries to start — must return False
-            result_non_host = proxy.start_game(non_host_player_id, 5)
+            result_non_host = proxy.start_game(non_host_player_id)
             assert result_non_host is False, (
                 f"start_game must return False for non-host player, got {result_non_host}"
             )
 
             # Host with 2 players — must return True
-            result_host = proxy.start_game(host_player_id, 5)
+            result_host = proxy.start_game(host_player_id)
             assert result_host is True, (
                 f"start_game must return True for host with ≥2 players, got {result_host}"
             )

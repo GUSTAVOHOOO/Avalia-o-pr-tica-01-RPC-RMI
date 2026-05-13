@@ -82,6 +82,7 @@ class GameServer:
         self.lock = threading.RLock()
         self.broadcaster = EventBroadcaster()
         self.sessions: dict = {}  # room_code -> GameSession
+        self._player_to_room: dict = {}  # player_id -> room_code (WR-06)
 
     def ping(self) -> str:
         """Health-check endpoint — returns 'pong'."""
@@ -146,7 +147,7 @@ class GameServer:
         separately (D-03).
 
         Args:
-            player_name: Host's display name (non-empty, max 50 chars).
+            player_name: Host's display name (non-empty, max 20 chars).
             callback_uri: Pyro5 URI of the player's callback daemon.
             max_turns: Number of game turns; must be in {3, 5, 7, 10}.
 
@@ -158,8 +159,8 @@ class GameServer:
         """
         if not isinstance(player_name, str) or not player_name:
             raise ValueError("player_name must be a non-empty string")
-        if len(player_name) > 50:
-            raise ValueError("player_name must be at most 50 characters")
+        if len(player_name) > 20:
+            raise ValueError("player_name must be at most 20 characters")
         if not isinstance(callback_uri, str) or not callback_uri:
             raise ValueError("callback_uri must be a non-empty string")
         if max_turns not in {3, 5, 7, 10}:
@@ -183,6 +184,7 @@ class GameServer:
             )
             self.sessions[room_code] = session
             self.broadcaster.register_callback(player_id, callback_uri)
+            self._player_to_room[player_id] = room_code  # WR-06
 
         # No broadcast on create — first player has no one to notify (D-03)
         return {"player_id": player_id, "room_code": room_code, "is_host": True}
@@ -194,7 +196,7 @@ class GameServer:
         Broadcasts PLAYER_JOINED OUTSIDE the lock to avoid deadlock (Pitfall 4).
 
         Args:
-            player_name: Joining player's display name (non-empty, max 50 chars).
+            player_name: Joining player's display name (non-empty, max 20 chars).
             callback_uri: Pyro5 URI of the player's callback daemon.
             room_code: 6-character code identifying the target session.
 
@@ -204,8 +206,8 @@ class GameServer:
         """
         if not isinstance(player_name, str) or not player_name:
             raise ValueError("player_name must be a non-empty string")
-        if len(player_name) > 50:
-            raise ValueError("player_name must be at most 50 characters")
+        if len(player_name) > 20:
+            raise ValueError("player_name must be at most 20 characters")
         if not isinstance(callback_uri, str) or not callback_uri:
             raise ValueError("callback_uri must be a non-empty string")
         if not isinstance(room_code, str) or not room_code:
@@ -231,6 +233,7 @@ class GameServer:
             )
             session.players.append(player)
             self.broadcaster.register_callback(player_id, callback_uri)
+            self._player_to_room[player_id] = room_code  # WR-06
 
             # Snapshot broadcast data before releasing lock (Pitfall 4)
             broadcast_data = {
@@ -247,16 +250,31 @@ class GameServer:
         self.broadcaster.broadcast("player_joined", broadcast_data)
         return {"player_id": player_id, "room_code": room_code, "is_host": False}
 
-    def start_game(self, player_id: str, max_turns: int) -> bool:
+    def get_session(self, room_code: str) -> dict:
+        """Return the current player list for a session (CR-01 — Lobby mount query).
+
+        Args:
+            room_code: The 6-character room identifier.
+
+        Returns:
+            {"players": list}  with serializable player dicts on success.
+            {"error": str}  if room_code is not found.
+        """
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return {"error": "sala nao encontrada"}
+            return {"players": session.get_player_dicts()}
+
+    def start_game(self, player_id: str) -> bool:
         """Start the game session if caller is host and ≥2 players are present.
 
         Validates host authorization (T-02-01, SESSION-06).  Broadcasts
-        GAME_STARTED outside the lock.
+        GAME_STARTED outside the lock.  max_turns is taken from the session
+        (set at create_game time) — not accepted from the caller (CR-04).
 
         Args:
             player_id: The player attempting to start the game (must be host).
-            max_turns: Number of turns (stored in session; this value is accepted
-                       as an override per PRD §6.1 open question recommendation).
 
         Returns:
             True if game was started; False if validation fails.
@@ -264,15 +282,9 @@ class GameServer:
         broadcast_data = None
 
         with self.lock:
-            # Find the session containing this player_id
-            target_session = None
-            for session in self.sessions.values():
-                for p in session.players:
-                    if p.player_id == player_id:
-                        target_session = session
-                        break
-                if target_session:
-                    break
+            # O(1) lookup via _player_to_room index (WR-06)
+            room_code = self._player_to_room.get(player_id)
+            target_session = self.sessions.get(room_code) if room_code else None
 
             if target_session is None:
                 return False
@@ -309,23 +321,19 @@ class GameServer:
         host_changed = False
 
         with self.lock:
-            # Find the session and the player
-            target_session = None
-            for session in self.sessions.values():
-                for p in session.players:
-                    if p.player_id == player_id:
-                        target_session = session
-                        break
-                if target_session:
-                    break
-
+            # O(1) lookup via _player_to_room index (WR-06)
+            room_code = self._player_to_room.pop(player_id, None)
+            if room_code is None:
+                return False
+            target_session = self.sessions.get(room_code)
             if target_session is None:
                 return False
 
-            # Remove the player
+            # Remove the player and unregister their callback (WR-05)
             target_session.players = [
                 p for p in target_session.players if p.player_id != player_id
             ]
+            self.broadcaster.unregister_callback(player_id)
 
             # If session is now empty, delete it
             if not target_session.players:

@@ -29,6 +29,14 @@ class EventBroadcaster:
         with self.lock:
             self.callbacks[player_id] = callback_uri
 
+    def unregister_callback(self, player_id: str):
+        """Remove the callback URI for player_id if present (WR-05).
+
+        Safe to call even if player_id was never registered (no-op).
+        """
+        with self.lock:
+            self.callbacks.pop(player_id, None)
+
     def broadcast(self, event_type: str, data: dict, exclude=None):
         """Fan-out event_type to all registered callbacks.
 
@@ -56,10 +64,15 @@ class EventBroadcaster:
                 with Pyro5.api.Proxy(uri) as proxy:
                     method = getattr(proxy, "on_" + event_type.lower())
                     method(data)
-            except Exception as e:
-                print(f"[EventBroadcaster] Callback failed for {player_id}: {e}",
+            except (ConnectionRefusedError, OSError) as e:
+                # Permanent failure — remote end is gone; remove entry (WR-03)
+                print(f"[EventBroadcaster] Permanent callback failure for {player_id}: {e}",
                       flush=True)
                 failed.append(player_id)
+            except Exception as e:
+                # Transient failure (timeout, etc.) — log but keep registration
+                print(f"[EventBroadcaster] Transient callback error for {player_id}: {e}",
+                      flush=True)
 
         if failed:
             with self.lock:
