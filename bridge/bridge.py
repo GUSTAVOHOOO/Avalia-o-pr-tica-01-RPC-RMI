@@ -116,6 +116,8 @@ def start_callback_daemon() -> tuple:
 
 # Maps request.sid → player_id; populated on create_game / join_game (D-07)
 _sid_to_player: dict = {}
+# Lock protecting _sid_to_player from concurrent mutations across handler threads (CR-03)
+_sid_lock = threading.Lock()
 
 # Bridge callback URI set in __main__ after start_callback_daemon(); handlers
 # read this to pass the bridge's receiver URI to GameServer methods (Pitfall 2)
@@ -205,7 +207,8 @@ def handle_create_game(data):
         data["player_name"], _cb_uri, int(data["max_turns"])
     )
     if "error" not in result:
-        _sid_to_player[request.sid] = result["player_id"]
+        with _sid_lock:
+            _sid_to_player[request.sid] = result["player_id"]
         join_room(result["room_code"])
         print(
             f"[BRIDGE] create_game: player {result['player_id']} "
@@ -226,7 +229,8 @@ def handle_join_game(data):
         data["player_name"], _cb_uri, data["room_code"]
     )
     if "error" not in result:
-        _sid_to_player[request.sid] = result["player_id"]
+        with _sid_lock:
+            _sid_to_player[request.sid] = result["player_id"]
         join_room(result["room_code"])
         print(
             f"[BRIDGE] join_game: player {result['player_id']} "
@@ -235,19 +239,36 @@ def handle_join_game(data):
     return result
 
 
+@socketio.on("get_players")
+def handle_get_players(data):
+    """Return the current player list for a room — called by Lobby on mount (CR-01).
+
+    Payload: {room_code: str}
+    Returns (as ack): {players: list} or {error: str}
+    """
+    room_code = (data or {}).get("room_code", "")
+    if not room_code:
+        return {"error": "room_code required"}
+    proxy = get_game_server_proxy()
+    result = proxy.get_session(room_code)
+    return result
+
+
 @socketio.on("start_game")
 def handle_start_game(data):
     """Request game start — only valid for host with ≥2 players in the session.
 
-    Payload: {max_turns: int} (player_id resolved server-side via _sid_to_player)
+    Payload: {} (player_id resolved server-side via _sid_to_player; max_turns
+    comes from the session created at create_game time — not from client payload,
+    CR-04)
     Returns (as ack): {success: bool} or {error: str}
     """
-    player_id = _sid_to_player.get(request.sid)
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
     if not player_id:
         return {"error": "sessao nao encontrada"}
     proxy = get_game_server_proxy()
-    max_turns = int(data.get("max_turns", 5))
-    success = proxy.start_game(player_id, max_turns)
+    success = proxy.start_game(player_id)
     if not success:
         socketio.emit(
             "start_game_error",
@@ -260,7 +281,8 @@ def handle_start_game(data):
 @socketio.on("disconnect")
 def handle_disconnect(reason):
     """On disconnect, remove player from session via leave_game RPC."""
-    player_id = _sid_to_player.pop(request.sid, None)
+    with _sid_lock:
+        player_id = _sid_to_player.pop(request.sid, None)
     if player_id:
         try:
             proxy = get_game_server_proxy()
@@ -278,10 +300,17 @@ def handle_disconnect(reason):
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_spa(path):
-    """Serve frontend dist assets or fall back to index.html for React Router."""
-    full_path = os.path.join(config.FRONTEND_DIST_PATH, path)
-    if path and os.path.exists(full_path):
-        return send_from_directory(config.FRONTEND_DIST_PATH, path)
+    """Serve frontend dist assets or fall back to index.html for React Router.
+
+    Uses send_from_directory's built-in path-traversal guard (CR-05).
+    The manual os.path.exists check was removed to avoid probing the filesystem
+    with unsanitised user-controlled paths.
+    """
+    if path:
+        try:
+            return send_from_directory(config.FRONTEND_DIST_PATH, path)
+        except Exception:
+            pass
     return send_from_directory(config.FRONTEND_DIST_PATH, "index.html")
 
 
