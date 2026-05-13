@@ -119,7 +119,7 @@ _sid_to_player: dict = {}
 
 # Bridge callback URI set in __main__ after start_callback_daemon(); handlers
 # read this to pass the bridge's receiver URI to GameServer methods (Pitfall 2)
-_cb_uri: str = ""
+_cb_uri = ""
 
 # ---------------------------------------------------------------------------
 # Per-thread Pyro5 proxy (D-10) — each Flask-SocketIO handler thread gets its
@@ -290,7 +290,6 @@ def serve_spa(path):
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    global _cb_uri
     _cb_uri, _daemon = start_callback_daemon()
     print(f"[BRIDGE] Callback receiver URI: {_cb_uri}")
 
