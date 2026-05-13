@@ -31,7 +31,6 @@ export default function Lobby() {
 
   const playerId = localStorage.getItem('player_id') ?? ''
   const isHost = localStorage.getItem('is_host') === 'true'
-  const maxTurns = Number(localStorage.getItem('max_turns') ?? 5)
 
   function addToast(message: string, variant: ToastVariant = 'info') {
     const id = ++toastCounter
@@ -49,21 +48,29 @@ export default function Lobby() {
     navigate(`/game/${sessionId}`)
   }, [navigate, sessionId])
 
-  const handleHostChanged = useCallback((data: { new_host_name?: string }) => {
-    const newHostName = data.new_host_name ?? 'desconhecido'
-    const newIsHost = players.find((p) => p.player_name === newHostName)?.player_id === playerId
+  const handleHostChanged = useCallback((data: { new_host_id: string; players: Player[] }) => {
+    // CR-02: server sends new_host_id, not new_host_name; compare by ID directly
+    if (data.players) setPlayers(data.players)
+    const newIsHost = data.new_host_id === playerId
     if (newIsHost) {
       localStorage.setItem('is_host', 'true')
       addToast('Você é o novo host!', 'info')
     } else {
-      addToast(`Novo host: ${newHostName}`, 'info')
+      const newHostPlayer = data.players?.find((p) => p.player_id === data.new_host_id)
+      addToast(`Novo host: ${newHostPlayer?.player_name ?? 'desconhecido'}`, 'info')
     }
-  }, [players, playerId])
+  }, [playerId])
 
   useEffect(() => {
     if (!socket.connected) {
       socket.connect()
     }
+
+    // CR-01: fetch current player list on mount so the host (and any player
+    // who joins before the Lobby renders) sees the correct list immediately
+    socket.emit('get_players', { room_code: sessionId }, (data: { players?: Player[]; error?: string }) => {
+      if (data?.players) setPlayers(data.players)
+    })
 
     socket.on('player_joined', handlePlayerJoined)
     socket.on('game_started', handleGameStarted)
@@ -74,7 +81,7 @@ export default function Lobby() {
       socket.off('game_started', handleGameStarted)
       socket.off('host_changed', handleHostChanged)
     }
-  }, [handlePlayerJoined, handleGameStarted, handleHostChanged])
+  }, [handlePlayerJoined, handleGameStarted, handleHostChanged, sessionId])
 
   function handleCopyLink() {
     if (navigator.clipboard) {
@@ -91,7 +98,13 @@ export default function Lobby() {
   function handleStartGame() {
     if (!isHost || players.length < 2) return
     setGameStarting(true)
-    socket.emit('start_game', { player_id: playerId, max_turns: maxTurns })
+    // WR-02: ack callback resets spinner on failure; max_turns removed (CR-04)
+    socket.emit('start_game', { player_id: playerId }, (resp: { success: boolean; error?: string }) => {
+      if (!resp.success) {
+        setGameStarting(false)
+        addToast(resp.error ?? 'Não foi possível iniciar o jogo.', 'error')
+      }
+    })
   }
 
   function handleLeaveConfirm() {

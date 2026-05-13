@@ -23,6 +23,7 @@ export default function JoinGame() {
       (response: Record<string, unknown>) => {
         setLoading(false)
         if (response.error) {
+          socket.disconnect()  // WR-01: don't leave socket connected on error
           const err = String(response.error)
           if (err === 'jogo em andamento') {
             setError('O jogo já começou.')

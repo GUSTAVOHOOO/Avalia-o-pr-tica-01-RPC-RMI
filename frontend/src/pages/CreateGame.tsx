@@ -25,6 +25,7 @@ export default function CreateGame() {
       (response: Record<string, unknown>) => {
         setLoading(false)
         if (response.error) {
+          socket.disconnect()  // WR-01: don't leave socket connected on error
           setError(String(response.error))
           return
         }
