@@ -44,7 +44,19 @@ Browser ←→ WebSocket/HTTP Bridge ←→ Pyro5 Daemon (GameServer)
 
 ### Validated
 
-(None yet — ship to validate)
+**Phase 1 — RPC Infrastructure + Callback Pipeline**
+- [x] Servidor Pyro5 com GameServer exposto via RPC — Validated in Phase 1
+- [x] Sistema de registro de callbacks de clientes (register_callback) — Validated in Phase 1
+- [x] EventBroadcaster via Pyro5 callbacks (push, não polling) — Validated in Phase 1
+- [x] Thread-safety com RLock no servidor — Validated in Phase 1
+- [x] Name Server Pyro5 para descoberta de serviços — Validated in Phase 1
+- [x] Bridge WebSocket↔Pyro5 (Flask-SocketIO threading mode) — Validated in Phase 1
+
+**Phase 2 — Player Session + Lobby**
+- [x] Jogador entra/sai do jogo (create_game, join_game, leave_game) — Validated in Phase 2
+- [x] Lobby com lista de jogadores e link de convite (React frontend) — Validated in Phase 2
+- [x] Landing page com CTAs criar/entrar — Validated in Phase 2
+- [x] Tela criar partida (apelido + número de turnos) — Validated in Phase 2
 
 ### Active
 
@@ -135,4 +147,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-12 after initialization*
+*Last updated: 2026-05-12 after Phase 2 completion — player session + lobby delivered*
