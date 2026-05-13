@@ -144,7 +144,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
-| 2. Player Session + Lobby | 2/2 | Complete   | 2026-05-13 |
+| 2. Player Session + Lobby | 2/2 | Complete    | 2026-05-13 |
 | 3. Phase Machine + Timer | 0/TBD | Not started | - |
 | 4. Core Turn Loop | 0/TBD | Not started | - |
 | 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |
