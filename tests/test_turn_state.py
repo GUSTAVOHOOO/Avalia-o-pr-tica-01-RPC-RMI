@@ -64,11 +64,12 @@ def test_hint_received_payload():
 
 def test_hint_empty_on_timer():
     """HINT-03: timer expiry fills missing hints with empty strings."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
     from server.turn_machine import TurnMachine
 
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM1", max_turns=1, broadcaster=broadcaster, player_ids=["p1", "p2"])
+    tm.start()
+    tm.advance_phase_manual()
     tm.advance_phase_manual()
     assert tm.current_turn_state.hints_submitted["p2"] == "", (
         f"missing hint should be backfilled as empty string, got {tm.current_turn_state.hints_submitted}"
@@ -147,20 +148,29 @@ def test_guess_no_self_target():
 
 def test_image_manifest_load():
     """IMAGE-01: GameServer loads server/images/manifest.json at startup."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
     from server.game_server import GameServer
 
     server = GameServer()
-    assert server.image_manifest, "image_manifest should be loaded and non-empty"
+    assert len(server._image_manifest) >= 8, (
+        f"_image_manifest should have at least 8 entries, got {len(server._image_manifest)}"
+    )
 
 
 def test_object_assigned_payload():
     """IMAGE-02: OBJECT_ASSIGNED includes image_url and object_name."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
     from server.game_server import GameServer
 
     server = GameServer()
-    event = server.broadcaster.events[-1]["data"]
+    host = server.create_game("Alice", "PYRO:fake.alice@127.0.0.1:9999", 3)
+    server.join_game("Bob", "PYRO:fake.bob@127.0.0.1:9999", host["room_code"])
+    server.broadcaster = FakeBroadcaster()
+    started = server.start_game(host["player_id"])
+
+    assert started is True, "start_game should succeed with host and two players"
+    object_events = [e for e in server.broadcaster.events if e["type"] == "object_assigned"]
+    assert len(object_events) == 2, f"expected 2 object_assigned events, got {object_events}"
+
+    event = object_events[0]["data"]
     assert event["image_url"].startswith("/static/images/") and event["object_name"], (
         f"OBJECT_ASSIGNED payload should include static URL and object name, got {event}"
     )

@@ -9,6 +9,7 @@ Name Server lookup always passes host=config.NS_HOST to avoid UDP broadcast
 """
 
 import dataclasses
+import json
 import os
 import random
 import string
@@ -54,6 +55,8 @@ class GameSession:
     status: str  # "WAITING" | "IN_PROGRESS" | "ENDED"
     players: List[PlayerInfo] = dataclasses.field(default_factory=list)
     turn_machine: object = dataclasses.field(default=None, repr=False)  # TurnMachine instance, set by start_game()
+    accumulated_scores: dict = dataclasses.field(default_factory=dict)
+    current_image_assignments: dict = dataclasses.field(default_factory=dict)
 
     @property
     def player_count(self) -> int:
@@ -85,6 +88,10 @@ class GameServer:
         self.broadcaster = EventBroadcaster()
         self.sessions: dict = {}  # room_code -> GameSession
         self._player_to_room: dict = {}  # player_id -> room_code (WR-06)
+        manifest_path = os.path.join(os.path.dirname(__file__), "images", "manifest.json")
+        with open(manifest_path, encoding="utf-8") as manifest_file:
+            self._image_manifest: dict = json.load(manifest_file)
+        self._used_images_this_game: dict = {}
 
     def ping(self) -> str:
         """Health-check endpoint — returns 'pong'."""
@@ -266,7 +273,20 @@ class GameServer:
             session = self.sessions.get(room_code)
             if session is None:
                 return {"error": "sala nao encontrada"}
-            return {"players": session.get_player_dicts()}
+
+            result = {
+                "room_code": session.room_code,
+                "status": session.status,
+                "players": session.get_player_dicts(),
+                "max_turns": session.max_turns,
+            }
+            if session.turn_machine is not None:
+                result.update({
+                    "phase": session.turn_machine.current_phase,
+                    "remaining_seconds": session.turn_machine.remaining_seconds,
+                    "current_turn": session.turn_machine.current_turn,
+                })
+            return result
 
     def _set_session_ended(self, room_code: str) -> None:
         """Mark session as ENDED. Called from TurnMachine on_game_ended callback (D-07).
@@ -278,6 +298,55 @@ class GameServer:
             session = self.sessions.get(room_code)
             if session is not None:
                 session.status = "ENDED"
+
+    def _assign_images_for_turn(self, room_code: str) -> None:
+        """Assign one unique image to each player and privately notify them."""
+        assignments = []
+
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return
+
+            players = list(session.players)
+            used = self._used_images_this_game.setdefault(room_code, set())
+            available = [filename for filename in self._image_manifest if filename not in used]
+            if len(available) < len(players):
+                used.clear()
+                available = list(self._image_manifest)
+
+            selected = random.sample(available, len(players))
+            session.current_image_assignments.clear()
+            for player, filename in zip(players, selected):
+                object_name = self._image_manifest[filename]
+                session.current_image_assignments[player.player_id] = object_name
+                used.add(filename)
+                assignments.append((player.player_id, filename, object_name))
+
+        for player_id, filename, object_name in assignments:
+            self.broadcaster.send_to_player(
+                player_id,
+                "object_assigned",
+                {
+                    "target_player_id": player_id,
+                    "image_url": f"/static/images/{filename}",
+                    "object_name": object_name,
+                },
+            )
+
+    def _consume_image_assignments(self, room_code: str) -> dict:
+        """Snapshot and clear staged image assignments for TurnState creation."""
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return {}
+            snapshot = dict(session.current_image_assignments)
+            session.current_image_assignments.clear()
+            return snapshot
+
+    def _accumulate_scores(self, room_code: str, turn_state) -> None:
+        """Plan 03 replaces this no-op with real score accumulation."""
+        print(f"[GameServer] scoring callback fired for room {room_code}", flush=True)
 
     def start_game(self, player_id: str) -> bool:
         """Start the game session if caller is host and ≥2 players are present.
@@ -318,7 +387,11 @@ class GameServer:
                 room_code=target_session.room_code,
                 max_turns=target_session.max_turns,
                 broadcaster=self.broadcaster,
+                player_ids=[p.player_id for p in target_session.players],
                 on_game_ended=lambda: self._set_session_ended(room_code_for_cb),
+                on_round_start=lambda: self._assign_images_for_turn(room_code_for_cb),
+                on_hint_phase_start=lambda: self._consume_image_assignments(room_code_for_cb),
+                on_scoring_phase=lambda ts: self._accumulate_scores(room_code_for_cb, ts),
             )
 
             broadcast_data = {
