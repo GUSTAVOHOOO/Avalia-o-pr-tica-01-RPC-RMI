@@ -43,10 +43,12 @@ class TurnMachine:
     broadcaster.broadcast() is always called AFTER releasing the lock.
     """
 
-    def __init__(self, room_code: str, max_turns: int, broadcaster):
+    def __init__(self, room_code: str, max_turns: int, broadcaster,
+                 on_game_ended=None):
         self.room_code = room_code
         self.max_turns = max_turns
         self.broadcaster = broadcaster
+        self._on_game_ended = on_game_ended  # optional callable(); called with no args when game ends (D-07)
 
         self.lock = threading.RLock()
         self.current_phase: str = "WAITING"
@@ -138,6 +140,9 @@ class TurnMachine:
         # Broadcast OUTSIDE the lock — network I/O must never hold the state lock
         if game_ended:
             self.broadcaster.broadcast("game_ended", broadcast_data)
+            # Notify GameServer to mark session ENDED — called with no lock held (T-03-10)
+            if self._on_game_ended is not None:
+                self._on_game_ended()
         else:
             self.broadcaster.broadcast("phase_changed", broadcast_data)
 

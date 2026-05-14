@@ -91,6 +91,26 @@ class BridgeCallbackReceiver:
         except Exception as exc:
             print(f"[BRIDGE] ERROR in on_host_changed: {exc}", flush=True)
 
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_phase_changed(self, data: dict):
+        """Receives PHASE_CHANGED push from TurnMachine (via GameServer broadcaster); routes to room."""
+        try:
+            socketio.emit("phase_changed", data, to=data["room_code"])
+            print(f"[BRIDGE] phase_changed emitted to room {data['room_code']} phase={data.get('phase')}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_phase_changed: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_game_ended(self, data: dict):
+        """Receives GAME_ENDED push from TurnMachine (via GameServer broadcaster); routes to room."""
+        try:
+            socketio.emit("game_ended", data, to=data["room_code"])
+            print(f"[BRIDGE] game_ended emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_game_ended: {exc}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Callback daemon startup — binds receiver to a loopback Pyro5 daemon
