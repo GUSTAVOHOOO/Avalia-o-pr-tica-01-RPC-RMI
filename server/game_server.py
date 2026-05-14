@@ -418,7 +418,7 @@ class GameServer:
 
 if __name__ == "__main__":
     server = GameServer()
-    daemon = Pyro5.api.Daemon(host="127.0.0.1", port=config.GAME_SERVER_PORT)
+    daemon = Pyro5.api.Daemon(host=config.PYRO_BIND_HOST, port=config.GAME_SERVER_PORT)
     uri = daemon.register(server, objectId=config.GAME_SERVER_NAME)
 
     try:

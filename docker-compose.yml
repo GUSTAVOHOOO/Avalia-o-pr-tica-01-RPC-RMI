@@ -1,0 +1,77 @@
+services:
+  nameserver:
+    build: .
+    command: python -m Pyro5.utils.nameserver --host 0.0.0.0
+    networks:
+      - game-net
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import Pyro5.api; Pyro5.api.locate_ns(host='localhost')"
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+
+  gameserver:
+    build: .
+    command: python server/game_server.py
+    environment:
+      PYRO_NS_HOST: nameserver
+      PYRO_BIND_HOST: gameserver
+    networks:
+      - game-net
+    depends_on:
+      nameserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >
+          import Pyro5.api, os;
+          ns = Pyro5.api.locate_ns(host=os.environ['PYRO_NS_HOST']);
+          uri = ns.lookup('game.server');
+          p = Pyro5.api.Proxy(uri);
+          p.ping()
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  bridge:
+    build: .
+    command: python bridge/bridge.py
+    environment:
+      PYRO_NS_HOST: nameserver
+      PYRO_BIND_HOST: bridge
+      FLASK_BIND_HOST: "0.0.0.0"
+    ports:
+      - "5000:5000"
+    networks:
+      - game-net
+    depends_on:
+      gameserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >
+          import socket;
+          s = socket.socket();
+          s.settimeout(2);
+          s.connect(('localhost', 5000));
+          s.close()
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+networks:
+  game-net:
+    driver: bridge

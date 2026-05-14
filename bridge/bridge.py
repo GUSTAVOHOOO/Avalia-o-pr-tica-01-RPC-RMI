@@ -122,7 +122,7 @@ def start_callback_daemon() -> tuple:
     Returns (uri_str, daemon) so the caller can pass the URI to GameServer
     and hold a reference to prevent GC of the daemon.
     """
-    daemon = Pyro5.api.Daemon(host="127.0.0.1")
+    daemon = Pyro5.api.Daemon(host=config.PYRO_BIND_HOST)
     receiver = BridgeCallbackReceiver()
     uri = daemon.register(receiver)
     t = threading.Thread(target=daemon.requestLoop, daemon=True)
@@ -361,5 +361,5 @@ if __name__ == "__main__":
     if not connect_to_game_server(_cb_uri):
         sys.exit(1)
 
-    socketio.run(app, host="127.0.0.1", port=config.BRIDGE_PORT,
+    socketio.run(app, host=config.FLASK_BIND_HOST, port=config.BRIDGE_PORT,
                  allow_unsafe_werkzeug=True)
