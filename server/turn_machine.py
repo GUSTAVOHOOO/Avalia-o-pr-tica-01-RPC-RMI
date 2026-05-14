@@ -32,6 +32,45 @@ PHASE_SEQUENCE = [
 ]
 
 
+def _calculate_score_deltas(turn_state) -> dict:
+    """Calculate per-player score deltas for the current turn."""
+    deltas = {player_id: 0 for player_id in turn_state.player_ids}
+
+    for index, guesser_id in enumerate(turn_state.correct_guesses):
+        points = max(20 - index * 5, 5)
+        deltas[guesser_id] = deltas.get(guesser_id, 0) + points
+
+    if len(turn_state.correct_guesses) == 1:
+        guesser_id = turn_state.correct_guesses[0]
+        deltas[guesser_id] = deltas.get(guesser_id, 0) + 10
+
+    targets = {
+        target_player_id
+        for target_player_id in turn_state.guesses_made.values()
+        if target_player_id is not None
+    }
+    for owner_id in targets:
+        all_targeters = [
+            guesser_id
+            for guesser_id, target_id in turn_state.guesses_made.items()
+            if target_id == owner_id
+        ]
+        correct_targeters = [
+            guesser_id
+            for guesser_id in turn_state.correct_guesses
+            if turn_state.guesses_made.get(guesser_id) == owner_id
+        ]
+        if not all_targeters or not correct_targeters:
+            owner_points = 0
+        elif len(correct_targeters) == len(all_targeters):
+            owner_points = -10
+        else:
+            owner_points = max(15 - (len(correct_targeters) - 1) * 5, 0)
+        deltas[owner_id] = deltas.get(owner_id, 0) + owner_points
+
+    return deltas
+
+
 class TurnMachine:
     """Manages game phase state machine with auto-advancing timers.
 
@@ -209,6 +248,14 @@ class TurnMachine:
         with self.lock:
             next_phase = self._compute_next(self.current_phase)
         self._advance_to(next_phase)
+
+    def advance_to_guess_phase(self):
+        """Fast path from HINT_PHASE to GUESS_PHASE after all hints arrive."""
+        with self.lock:
+            if self.current_phase != "HINT_PHASE":
+                return False
+        self._advance_to("GUESS_PHASE")
+        return True
 
     @property
     def remaining_seconds(self) -> int:

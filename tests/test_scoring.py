@@ -1,17 +1,12 @@
-"""Wave 0 test stubs for Phase 4 scoring behavior."""
+"""Unit tests for Phase 4 scoring behavior."""
 
-import pytest
+from server.turn_machine import _calculate_score_deltas
+from server.turn_state import TurnState
 
 
 def test_tiered_guessers():
     """SCORE-01: tiered guesser points are 20, 15, 10, then minimum 5."""
-    pytest.skip("Wave 0 stub - implement in Plan 03")
-    from server.turn_machine import _calculate_score_deltas
-    from server.turn_state import TurnState
-
     ts = TurnState(turn_number=1, player_ids=["p1", "p2", "p3", "p4"])
-    ts.image_assignments = {"p1": "apple", "p2": "bicycle", "p3": "chair", "p4": "clock"}
-    ts.guesses_made = {"p1": "p2", "p2": "p1", "p3": "p1", "p4": "p1"}
     ts.correct_guesses = ["p1", "p2", "p3", "p4"]
 
     deltas = _calculate_score_deltas(ts)
@@ -24,13 +19,7 @@ def test_tiered_guessers():
 
 def test_solo_bonus():
     """SCORE-02: a sole correct guesser receives a +10 bonus."""
-    pytest.skip("Wave 0 stub - implement in Plan 03")
-    from server.turn_machine import _calculate_score_deltas
-    from server.turn_state import TurnState
-
     ts = TurnState(turn_number=1, player_ids=["p1", "p2", "p3", "p4"])
-    ts.image_assignments = {"p1": "apple", "p2": "bicycle", "p3": "chair", "p4": "clock"}
-    ts.guesses_made = {"p1": "p2"}
     ts.correct_guesses = ["p1"]
 
     deltas = _calculate_score_deltas(ts)
@@ -40,13 +29,8 @@ def test_solo_bonus():
 
 def test_owner_scoring():
     """SCORE-03: owner score changes by the number of correct guessers."""
-    pytest.skip("Wave 0 stub - implement in Plan 03")
-    from server.turn_machine import _calculate_score_deltas
-    from server.turn_state import TurnState
-
     ts = TurnState(turn_number=1, player_ids=["p1", "p2", "p3", "p4"])
-    ts.image_assignments = {"p1": "apple", "p2": "bicycle", "p3": "chair", "p4": "clock"}
-    ts.guesses_made = {"p2": "p1", "p3": "p1"}
+    ts.guesses_made = {"p2": "p1", "p3": "p1", "p4": "p1"}
     ts.correct_guesses = ["p2", "p3"]
 
     deltas = _calculate_score_deltas(ts)
@@ -56,8 +40,6 @@ def test_owner_scoring():
 
 def test_score_updated_payload_shape():
     """SCORE-04: SCORE_UPDATED payload includes room, turn, and score rows."""
-    pytest.skip("Wave 0 stub - implement in Plan 03")
-
     payload = {
         "room_code": "ABC123",
         "turn_number": 1,
