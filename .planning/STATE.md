@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-05-14T18:21:55.380Z"
-last_activity: 2026-05-14 -- Phase 04 planning complete
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-05-14T19:12:27.445Z"
+last_activity: 2026-05-14
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 14
-  completed_plans: 9
-  percent: 64
+  completed_plans: 10
+  percent: 71
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Demonstrar arquitetura distribuída event-driven funcional: servidor Pyro5 com callbacks push para todos os clientes, mecânicas de jogo completas e interface web reagindo em tempo real com 2–4 jogadores simultâneos
-**Current focus:** Phase 03 — phase-machine-timer
+**Current focus:** Phase 04 — core-turn-loop
 
 ## Current Position
 
-Phase: 03 (phase-machine-timer) — EXECUTING
-Plan: 1 of 3
+Phase: 04 (core-turn-loop) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-05-14 -- Phase 04 planning complete
+Last activity: 2026-05-14
 
-Progress: [████████░░] 83%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [████████░░] 83%
 | Phase 01-rpc-infrastructure-callback-pipeline P01 | 2 | 2 tasks | 9 files |
 | Phase 01-rpc-infrastructure-callback-pipeline P04 | multi-session | 3 tasks | 4 files |
 | Phase 02-player-session-lobby P01 | 2 | 1 tasks | 3 files |
+| Phase 04 P01 | 25 min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-14T17:11:24.490Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-core-turn-loop/04-CONTEXT.md
+Last session: 2026-05-14T19:12:26.854Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

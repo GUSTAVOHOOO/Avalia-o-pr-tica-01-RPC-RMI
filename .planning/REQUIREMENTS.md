@@ -32,18 +32,18 @@
 
 ### Mecânica de Dicas (HINT)
 
-- [ ] **HINT-01**: Durante HINT_PHASE cada jogador envia exatamente uma palavra via `submit_hint(player_id, hint_word)`
-- [ ] **HINT-02**: Servidor broadcast `HINT_RECEIVED` para todos os clientes ao receber dica de qualquer jogador
-- [ ] **HINT-03**: Jogador que não enviar dica antes do timer recebe string vazia automaticamente (sem penalidade)
-- [ ] **HINT-04**: Fase avança para GUESS_PHASE automaticamente quando todos os jogadores enviaram dica ou timer expirou
+- [x] **HINT-01**: Durante HINT_PHASE cada jogador envia exatamente uma palavra via `submit_hint(player_id, hint_word)`
+- [x] **HINT-02**: Servidor broadcast `HINT_RECEIVED` para todos os clientes ao receber dica de qualquer jogador
+- [x] **HINT-03**: Jogador que não enviar dica antes do timer recebe string vazia automaticamente (sem penalidade)
+- [x] **HINT-04**: Fase avança para GUESS_PHASE automaticamente quando todos os jogadores enviaram dica ou timer expirou
 
 ### Mecânica de Palpites e Arbitragem (GUESS)
 
-- [ ] **GUESS-01**: Durante GUESS_PHASE jogador pode enviar palpite sobre objeto de outro jogador via `submit_guess(player_id, target_player, guess)`
-- [ ] **GUESS-02**: Jogador pode passar a vez via `skip_guess(player_id)`
+- [x] **GUESS-01**: Durante GUESS_PHASE jogador pode enviar palpite sobre objeto de outro jogador via `submit_guess(player_id, target_player, guess)`
+- [x] **GUESS-02**: Jogador pode passar a vez via `skip_guess(player_id)`
 - [ ] **GUESS-03**: Arbitragem verifica palpite por: (a) igualdade exata, (b) similaridade Wu-Palmer via NLTK `wn` + own-pt com threshold configurável, (c) fallback exact-match se WordNet retornar None
-- [ ] **GUESS-04**: Resultado da arbitragem é broadcast para todos via `GUESS_RESULT` com `is_correct: bool`
-- [ ] **GUESS-05**: Cada jogador pode tentar adivinhar apenas um objeto por turno
+- [x] **GUESS-04**: Resultado da arbitragem é broadcast para todos via `GUESS_RESULT` com `is_correct: bool`
+- [x] **GUESS-05**: Cada jogador pode tentar adivinhar apenas um objeto por turno
 
 ### Troca Privada de Dicas (EXCHANGE)
 
@@ -64,16 +64,16 @@
 
 ### Sistema de Pontuação (SCORE)
 
-- [ ] **SCORE-01**: Primeiro a acertar palpite recebe +20pts; segundo +15pts; terceiro +10pts; demais max(20-(N-1)\*5, 5)
-- [ ] **SCORE-02**: Se apenas um jogador acertou, recebe +10pts bônus
-- [ ] **SCORE-03**: Dono do objeto: +15pts se 1 acertou; +10 se 2; +5 se 3; max(15-(N-1)\*5, 0) para N acertaram; 0pts se ninguém acertou; -10pts se todos acertaram
-- [ ] **SCORE-04**: Pontuação calculada automaticamente ao fim de SCORING_PHASE e broadcast via `SCORE_UPDATED` com breakdown por jogador
-- [ ] **SCORE-05**: Placar acumulado disponível via `get_scores(player_id)` a qualquer momento
+- [x] **SCORE-01**: Primeiro a acertar palpite recebe +20pts; segundo +15pts; terceiro +10pts; demais max(20-(N-1)\*5, 5)
+- [x] **SCORE-02**: Se apenas um jogador acertou, recebe +10pts bônus
+- [x] **SCORE-03**: Dono do objeto: +15pts se 1 acertou; +10 se 2; +5 se 3; max(15-(N-1)\*5, 0) para N acertaram; 0pts se ninguém acertou; -10pts se todos acertaram
+- [x] **SCORE-04**: Pontuação calculada automaticamente ao fim de SCORING_PHASE e broadcast via `SCORE_UPDATED` com breakdown por jogador
+- [x] **SCORE-05**: Placar acumulado disponível via `get_scores(player_id)` a qualquer momento
 
 ### Distribuição de Imagens (IMAGE)
 
-- [ ] **IMAGE-01**: Servidor possui banco de imagens em pasta local com mapeamento nome_arquivo → nome_objeto
-- [ ] **IMAGE-02**: No início de cada rodada servidor distribui uma imagem única por jogador via evento `OBJECT_ASSIGNED` contendo URL estática Flask (não bytes via Pyro5)
+- [x] **IMAGE-01**: Servidor possui banco de imagens em pasta local com mapeamento nome_arquivo → nome_objeto
+- [x] **IMAGE-02**: No início de cada rodada servidor distribui uma imagem única por jogador via evento `OBJECT_ASSIGNED` contendo URL estática Flask (não bytes via Pyro5)
 - [ ] **IMAGE-03**: Imagens servidas como arquivos estáticos pela camada Flask, nunca via serialização Pyro5
 
 ### Chat em Tempo Real (CHAT)
@@ -159,15 +159,15 @@
 | TURN-02 | Phase 3: Phase Machine + Timer | Pending |
 | TURN-03 | Phase 3: Phase Machine + Timer | Pending |
 | TURN-04 | Phase 3: Phase Machine + Timer | Pending |
-| HINT-01 | Phase 4: Core Turn Loop | Pending |
-| HINT-02 | Phase 4: Core Turn Loop | Pending |
-| HINT-03 | Phase 4: Core Turn Loop | Pending |
-| HINT-04 | Phase 4: Core Turn Loop | Pending |
-| GUESS-01 | Phase 4: Core Turn Loop | Pending |
-| GUESS-02 | Phase 4: Core Turn Loop | Pending |
+| HINT-01 | Phase 4: Core Turn Loop | Complete |
+| HINT-02 | Phase 4: Core Turn Loop | Complete |
+| HINT-03 | Phase 4: Core Turn Loop | Complete |
+| HINT-04 | Phase 4: Core Turn Loop | Complete |
+| GUESS-01 | Phase 4: Core Turn Loop | Complete |
+| GUESS-02 | Phase 4: Core Turn Loop | Complete |
 | GUESS-03 | Phase 6: Synonym Arbitration | Pending |
-| GUESS-04 | Phase 4: Core Turn Loop | Pending |
-| GUESS-05 | Phase 4: Core Turn Loop | Pending |
+| GUESS-04 | Phase 4: Core Turn Loop | Complete |
+| GUESS-05 | Phase 4: Core Turn Loop | Complete |
 | EXCHANGE-01 | Phase 5: Exchange + Spy Mechanics | Pending |
 | EXCHANGE-02 | Phase 5: Exchange + Spy Mechanics | Pending |
 | EXCHANGE-03 | Phase 5: Exchange + Spy Mechanics | Pending |
@@ -179,13 +179,13 @@
 | SPY-03 | Phase 5: Exchange + Spy Mechanics | Pending |
 | SPY-04 | Phase 5: Exchange + Spy Mechanics | Pending |
 | SPY-05 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SCORE-01 | Phase 4: Core Turn Loop | Pending |
-| SCORE-02 | Phase 4: Core Turn Loop | Pending |
-| SCORE-03 | Phase 4: Core Turn Loop | Pending |
-| SCORE-04 | Phase 4: Core Turn Loop | Pending |
-| SCORE-05 | Phase 4: Core Turn Loop | Pending |
-| IMAGE-01 | Phase 4: Core Turn Loop | Pending |
-| IMAGE-02 | Phase 4: Core Turn Loop | Pending |
+| SCORE-01 | Phase 4: Core Turn Loop | Complete |
+| SCORE-02 | Phase 4: Core Turn Loop | Complete |
+| SCORE-03 | Phase 4: Core Turn Loop | Complete |
+| SCORE-04 | Phase 4: Core Turn Loop | Complete |
+| SCORE-05 | Phase 4: Core Turn Loop | Complete |
+| IMAGE-01 | Phase 4: Core Turn Loop | Complete |
+| IMAGE-02 | Phase 4: Core Turn Loop | Complete |
 | IMAGE-03 | Phase 4: Core Turn Loop | Pending |
 | CHAT-01 | Phase 7: Reconnection + End-of-Game | Pending |
 | CHAT-02 | Phase 7: Reconnection + End-of-Game | Pending |
