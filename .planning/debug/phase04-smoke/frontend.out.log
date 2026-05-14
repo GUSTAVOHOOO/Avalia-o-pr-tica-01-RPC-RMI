@@ -1,0 +1,18 @@
+
+> sd-rpc-av1-frontend@0.0.1 dev
+> vite --host 127.0.0.1
+
+[2m17:09:30[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+
+  [32m[1mVITE[22m v8.0.12[39m  [2mready in [0m[1m1099[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[2m17:44:51[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/CreateGame.tsx, /src/index.css[22m
+[2m17:45:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/JoinByCode.tsx, /src/index.css[22m
+[2m17:45:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/JoinGame.tsx, /src/index.css[22m
+[2m17:46:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/GameScreen.css[22m
+[2m17:47:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/GameScreen.tsx, /src/index.css[22m
+[2m17:54:45[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Lobby.tsx, /src/index.css[22m
+[2m17:54:53[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/GameScreen.tsx, /src/index.css[22m
+[2m18:08:00[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+[2m18:08:00[22m [36m[1m[vite][22m[39m server restarted.

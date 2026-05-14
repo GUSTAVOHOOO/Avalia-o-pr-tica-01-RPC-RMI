@@ -26,9 +26,9 @@
 ### Máquina de Estados de Turno (TURN)
 
 - [ ] **TURN-01**: Servidor controla máquina de estados: WAITING → DISTRIBUTING → ROUND_START → HINT_PHASE → GUESS_PHASE → EXCHANGE_PHASE → SPY_PHASE → SCORING_PHASE → TURN_END
-- [ ] **TURN-02**: Cada fase tem timer configurável (30–60s) gerenciado por `threading.Timer` no servidor; ao expirar, fase avança automaticamente
-- [ ] **TURN-03**: Transição de fase envia evento broadcast `PHASE_CHANGED` para todos os clientes
-- [ ] **TURN-04**: Timer de fase usa generation counter para evitar race condition de timers obsoletos disparando após avanço manual
+- [x] **TURN-02**: Cada fase tem timer configurável (30–60s) gerenciado por `threading.Timer` no servidor; ao expirar, fase avança automaticamente
+- [x] **TURN-03**: Transição de fase envia evento broadcast `PHASE_CHANGED` para todos os clientes
+- [x] **TURN-04**: Timer de fase usa generation counter para evitar race condition de timers obsoletos disparando após avanço manual
 
 ### Mecânica de Dicas (HINT)
 
@@ -156,9 +156,9 @@
 | SESSION-06 | Phase 2: Player Session + Lobby | Complete |
 | SESSION-07 | Phase 7: Reconnection + End-of-Game | Pending |
 | TURN-01 | Phase 3: Phase Machine + Timer | Pending |
-| TURN-02 | Phase 3: Phase Machine + Timer | Pending |
-| TURN-03 | Phase 3: Phase Machine + Timer | Pending |
-| TURN-04 | Phase 3: Phase Machine + Timer | Pending |
+| TURN-02 | Phase 3: Phase Machine + Timer | Complete |
+| TURN-03 | Phase 3: Phase Machine + Timer | Complete |
+| TURN-04 | Phase 3: Phase Machine + Timer | Complete |
 | HINT-01 | Phase 4: Core Turn Loop | Complete |
 | HINT-02 | Phase 4: Core Turn Loop | Complete |
 | HINT-03 | Phase 4: Core Turn Loop | Complete |

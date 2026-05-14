@@ -57,9 +57,13 @@ class EventBroadcaster:
         with self.lock:
             snapshot = dict(self.callbacks)   # copy URIs under lock; iterate outside
 
+        delivered_uris = set()
         for player_id, uri in snapshot.items():
             if player_id in exclude:
                 continue
+            if uri in delivered_uris:
+                continue
+            delivered_uris.add(uri)
             try:
                 with Pyro5.api.Proxy(uri) as proxy:
                     method = getattr(proxy, "on_" + event_type.lower())

@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: RPC Infrastructure + Callback Pipeline** - Three processes running; server-pushed Pyro5 callback arrives at CLI client without client requesting it (completed 2026-05-12)
 - [x] **Phase 2: Player Session + Lobby** - Players create rooms, join via code, lobby list updates in real time, host starts game (completed 2026-05-13)
-- [ ] **Phase 3: Phase Machine + Timer** - Full HINT→GUESS→EXCHANGE→SPY→SCORING cycle with auto-timeout transitions
-- [ ] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated
+- [x] **Phase 3: Phase Machine + Timer** - Full HINT→GUESS→EXCHANGE→SPY→SCORING cycle with auto-timeout transitions (completed 2026-05-14)
+- [x] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated (completed 2026-05-14)
 - [ ] **Phase 5: Exchange + Spy Mechanics** - Private hint exchanges and espionage with public discovery notifications
 - [ ] **Phase 6: Synonym Arbitration** - Portuguese WordNet synonym matching replaces exact-match-only guessing
 - [ ] **Phase 7: Reconnection + End-of-Game** - State restoration on reconnect, post-game podium, play-again vote, chat
@@ -69,7 +69,7 @@ Plans:
   2. Letting the timer expire on any phase advances the game to the next phase automatically; a log entry shows the generation counter prevented any double-advance
   3. Manually advancing a phase (test RPC call) cancels the current timer; the old timer does not fire after the phase has already moved on
   4. A full cycle from ROUND_START through TURN_END completes without deadlock or silent freeze when tested with two connected browser sessions
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — TurnMachine class + unit tests: config.PHASE_DURATIONS, server/turn_machine.py (generation counter, threading.Timer, broadcast-outside-lock), 5 pytest tests covering TURN-01 through TURN-04
@@ -87,14 +87,14 @@ Plans:
   3. A player submitting a correct exact-match guess receives `GUESS_RESULT` with `is_correct: true`; the same player cannot guess the same target again in the same turn (`GUESS-05`)
   4. At SCORING_PHASE the server calculates and broadcasts `SCORE_UPDATED` with a per-player breakdown following the tiered scoring rules (SCORE-01 through SCORE-03); `get_scores()` returns the same accumulated totals
   5. Completing two consecutive turns with two players produces correct cumulative scores with no race conditions observed in server logs
-**Plans**: 5 plans
+**Plans**: 5/5 plans complete
 
 Plans:
 - [x] 04-01-PLAN.md — Wave 0: test stubs (test_turn_state.py, test_scoring.py) + image bank (server/images/manifest.json + 8 placeholder images)
 - [x] 04-02-PLAN.md — Server data layer: TurnState dataclass, TurnMachine phase hooks (HINT_PHASE TurnState creation, GUESS_PHASE hints revelation, SCORING_PHASE callback), GameServer image manifest + accumulated_scores
-- [ ] 04-03-PLAN.md — GameServer RPC methods (submit_hint, submit_guess, skip_guess, get_scores), _calculate_score_deltas pure function, all 18 unit tests green
-- [ ] 04-04-PLAN.md — Bridge wiring: _player_to_sid reverse map, on_hint_received / on_guess_result / on_score_updated / on_object_assigned callbacks, submit_hint/guess/skip handlers, /static/images/ Flask route
-- [ ] 04-05-PLAN.md — GameScreen.tsx: SecretImagePanel, HintPhasePanel, GuessPhasePanel, ScoringPhasePanel + 4-terminal smoke test checkpoint
+- [x] 04-03-PLAN.md — GameServer RPC methods (submit_hint, submit_guess, skip_guess, get_scores), _calculate_score_deltas pure function, all 18 unit tests green
+- [x] 04-04-PLAN.md — Bridge wiring: _player_to_sid reverse map, on_hint_received / on_guess_result / on_score_updated / on_object_assigned callbacks, submit_hint/guess/skip handlers, /static/images/ Flask route
+- [x] 04-05-PLAN.md — GameScreen.tsx: SecretImagePanel, HintPhasePanel, GuessPhasePanel, ScoringPhasePanel + 4-terminal smoke test checkpoint
 **UI hint**: yes
 
 ### Phase 5: Exchange + Spy Mechanics
@@ -157,8 +157,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
 | 2. Player Session + Lobby | 2/2 | Complete    | 2026-05-13 |
-| 3. Phase Machine + Timer | 0/3 | Not started | - |
-| 4. Core Turn Loop | 0/5 | Not started | - |
+| 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
+| 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |
 | 6. Synonym Arbitration | 0/TBD | Not started | - |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |

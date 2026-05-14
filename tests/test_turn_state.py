@@ -198,6 +198,18 @@ def test_object_assigned_payload():
     )
 
 
+def test_get_player_view_returns_current_object_assignment():
+    """IMAGE-02: reconnecting GameScreen can recover its private object assignment."""
+    server, session, player_id, _other_id = _server_with_turn_state("HINT_PHASE")
+
+    result = server.get_player_view(session.room_code, player_id)
+
+    assert result["object_assignment"] == {
+        "image_url": "/static/images/apple.jpg",
+        "object_name": "apple",
+    }, f"player view should include current private assignment, got {result}"
+
+
 def test_score_updated_payload():
     """SCORE-04: SCORE_UPDATED includes turn number and per-player score rows."""
     server, session, player_id, other_id = _server_with_turn_state("SCORING_PHASE")

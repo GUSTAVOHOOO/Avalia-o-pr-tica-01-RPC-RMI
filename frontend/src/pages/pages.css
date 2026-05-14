@@ -1,0 +1,56 @@
+/* ─── Shared page layout ─────────────────────────────────────────────────── */
+.page-root {
+  background-color: #0f1117;
+}
+
+/* Back button */
+.page-back-btn {
+  color: #6b7280;
+}
+
+/* Page title */
+.page-title {
+  color: #f1f5f9;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+/* Form card */
+.page-form-card {
+  background-color: #1a1d27;
+}
+
+/* Form field labels */
+.page-field-label {
+  color: #f1f5f9;
+}
+
+/* Text inputs and selects */
+.page-input {
+  background-color: #0f1117;
+  color: #f1f5f9;
+  border: 1px solid #2d3148;
+  min-height: 44px;
+}
+
+.page-input:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+/* Primary submit button */
+.page-submit-btn {
+  background-color: #6366f1;
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* Inline error text */
+.page-error {
+  color: #ef4444;
+}
+
+/* Hint / helper text */
+.page-hint {
+  color: #6b7280;
+}

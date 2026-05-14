@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import socket from '../socket'
+import './pages.css'
 
 export default function JoinByCode() {
   const navigate = useNavigate()
@@ -46,40 +47,31 @@ export default function JoinByCode() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 pt-12"
-      style={{ backgroundColor: '#0f1117' }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-start px-4 pt-12 page-root">
       <div className="w-full max-w-[400px]">
         {/* Back link */}
         <button
           onClick={() => navigate('/')}
-          className="text-sm mb-6 flex items-center gap-1 hover:opacity-80 transition-opacity"
-          style={{ color: '#6b7280' }}
+          className="text-sm mb-6 flex items-center gap-1 hover:opacity-80 transition-opacity page-back-btn"
         >
           ← Voltar
         </button>
 
         {/* Title */}
-        <h1
-          className="font-semibold mb-8"
-          style={{ color: '#f1f5f9', fontSize: '20px', lineHeight: '1.2' }}
-        >
+        <h1 className="font-semibold mb-8 page-title">
           Entrar na Partida
         </h1>
 
         {/* Form card */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl p-6 flex flex-col gap-5"
-          style={{ backgroundColor: '#1a1d27' }}
+          className="rounded-xl p-6 flex flex-col gap-5 page-form-card"
         >
           {/* Room code pre-filled + disabled */}
           <div className="flex flex-col gap-1">
             <label
               htmlFor="room-code"
-              className="text-sm font-normal"
-              style={{ color: '#f1f5f9' }}
+              className="text-sm font-normal page-field-label"
             >
               Código da Sessão
             </label>
@@ -89,13 +81,7 @@ export default function JoinByCode() {
               value={code.toUpperCase()}
               disabled
               readOnly
-              className="rounded-lg px-3 py-2 text-base font-mono uppercase tracking-widest opacity-60 cursor-not-allowed"
-              style={{
-                backgroundColor: '#0f1117',
-                color: '#f1f5f9',
-                border: '1px solid #2d3148',
-                minHeight: '44px',
-              }}
+              className="rounded-lg px-3 py-2 text-base font-mono uppercase tracking-widest opacity-60 cursor-not-allowed page-input"
               aria-label={`Código da sala: ${code.toUpperCase()}`}
             />
           </div>
@@ -104,8 +90,7 @@ export default function JoinByCode() {
           <div className="flex flex-col gap-1">
             <label
               htmlFor="player-name"
-              className="text-sm font-normal"
-              style={{ color: '#f1f5f9' }}
+              className="text-sm font-normal page-field-label"
             >
               Apelido
             </label>
@@ -118,21 +103,13 @@ export default function JoinByCode() {
               placeholder="Seu apelido"
               disabled={loading}
               autoFocus
-              className="rounded-lg px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                backgroundColor: '#0f1117',
-                color: '#f1f5f9',
-                border: '1px solid #2d3148',
-                minHeight: '44px',
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = '#6366f1')}
-              onBlur={(e) => (e.currentTarget.style.borderColor = '#2d3148')}
+              className="rounded-lg px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed page-input"
             />
           </div>
 
           {/* Inline error */}
           {error && (
-            <p className="text-sm" style={{ color: '#ef4444' }}>
+            <p className="text-sm page-error">
               {error}
             </p>
           )}
@@ -141,12 +118,7 @@ export default function JoinByCode() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="rounded-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            style={{
-              backgroundColor: '#6366f1',
-              minHeight: '44px',
-              fontSize: '16px',
-            }}
+            className="rounded-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 page-submit-btn"
           >
             {loading ? (
               <>

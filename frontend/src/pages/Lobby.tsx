@@ -40,10 +40,15 @@ export default function Lobby() {
 
   const handlePlayerJoined = useCallback((data: { players: Player[] }) => {
     setPlayers(data.players)
+    localStorage.setItem('players', JSON.stringify(data.players))
   }, [])
 
-  const handleGameStarted = useCallback(() => {
+  const handleGameStarted = useCallback((data?: { players?: Player[] }) => {
     setGameStarting(false)
+    if (data?.players) {
+      setPlayers(data.players)
+      localStorage.setItem('players', JSON.stringify(data.players))
+    }
     // Navigate to game phase placeholder (Phase 3+)
     navigate(`/game/${sessionId}`)
   }, [navigate, sessionId])
@@ -69,7 +74,10 @@ export default function Lobby() {
     // CR-01: fetch current player list on mount so the host (and any player
     // who joins before the Lobby renders) sees the correct list immediately
     socket.emit('get_players', { room_code: sessionId }, (data: { players?: Player[]; error?: string }) => {
-      if (data?.players) setPlayers(data.players)
+      if (data?.players) {
+        setPlayers(data.players)
+        localStorage.setItem('players', JSON.stringify(data.players))
+      }
     })
 
     socket.on('player_joined', handlePlayerJoined)

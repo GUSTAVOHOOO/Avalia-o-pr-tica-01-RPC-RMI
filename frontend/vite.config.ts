@@ -11,6 +11,10 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      '/static/images': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     },
   },
 })

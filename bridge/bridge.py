@@ -111,6 +111,62 @@ class BridgeCallbackReceiver:
         except Exception as exc:
             print(f"[BRIDGE] ERROR in on_game_ended: {exc}", flush=True)
 
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_hint_received(self, data: dict):
+        """Receives HINT_RECEIVED push from GameServer; routes to room."""
+        try:
+            socketio.emit("hint_received", data, to=data["room_code"])
+            print(
+                "[BRIDGE] hint_received emitted to room "
+                f"{data['room_code']} count={data.get('hints_count')}/{data.get('total_players')}",
+                flush=True,
+            )
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_hint_received: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_guess_result(self, data: dict):
+        """Receives GUESS_RESULT push from GameServer; routes to room."""
+        try:
+            socketio.emit("guess_result", data, to=data["room_code"])
+            print(
+                f"[BRIDGE] guess_result emitted is_correct={data.get('is_correct')}",
+                flush=True,
+            )
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_guess_result: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_score_updated(self, data: dict):
+        """Receives SCORE_UPDATED push from GameServer; routes to room."""
+        try:
+            socketio.emit("score_updated", data, to=data["room_code"])
+            print(f"[BRIDGE] score_updated emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_score_updated: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_object_assigned(self, data: dict):
+        """Receives OBJECT_ASSIGNED push from GameServer; routes privately to target player SID."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("object_assigned", data, to=sid)
+            print(
+                f"[BRIDGE] object_assigned -> sid={sid} player={target_player_id}",
+                flush=True,
+            )
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_object_assigned: {exc}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Callback daemon startup — binds receiver to a loopback Pyro5 daemon
@@ -136,6 +192,7 @@ def start_callback_daemon() -> tuple:
 
 # Maps request.sid → player_id; populated on create_game / join_game (D-07)
 _sid_to_player: dict = {}
+_player_to_sid: dict = {}
 # Lock protecting _sid_to_player from concurrent mutations across handler threads (CR-03)
 _sid_lock = threading.Lock()
 
@@ -229,6 +286,7 @@ def handle_create_game(data):
     if "error" not in result:
         with _sid_lock:
             _sid_to_player[request.sid] = result["player_id"]
+            _player_to_sid[result["player_id"]] = request.sid
         join_room(result["room_code"])
         print(
             f"[BRIDGE] create_game: player {result['player_id']} "
@@ -251,6 +309,7 @@ def handle_join_game(data):
     if "error" not in result:
         with _sid_lock:
             _sid_to_player[request.sid] = result["player_id"]
+            _player_to_sid[result["player_id"]] = request.sid
         join_room(result["room_code"])
         print(
             f"[BRIDGE] join_game: player {result['player_id']} "
@@ -298,6 +357,49 @@ def handle_start_game(data):
     return {"success": success}
 
 
+@socketio.on("submit_hint")
+def handle_submit_hint(data):
+    """Submit this player's one-word hint for the active turn."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.submit_hint(player_id, (data or {}).get("hint_word", ""))
+    print(f"[BRIDGE] submit_hint from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("submit_guess")
+def handle_submit_guess(data):
+    """Submit this player's guess; identity is resolved from SID, never client payload."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.submit_guess(
+        player_id,
+        (data or {}).get("target_player_id", ""),
+        (data or {}).get("guess_word", ""),
+    )
+    print(f"[BRIDGE] submit_guess from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("skip_guess")
+def handle_skip_guess(data):
+    """Skip this player's guess for the active turn."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.skip_guess(player_id)
+    print(f"[BRIDGE] skip_guess from player {player_id} -> {result}", flush=True)
+    return result
+
+
 @socketio.on("join_room")
 def handle_join_room(data):
     """Join (or rejoin) the Socket.IO room for a given room_code.
@@ -308,10 +410,20 @@ def handle_join_room(data):
     Payload: {room_code: str}
     """
     room_code = (data or {}).get("room_code", "")
+    player_id = (data or {}).get("player_id", "")
     if not room_code:
         return {"error": "room_code required"}
     join_room(room_code)
     print(f"[BRIDGE] join_room: sid={request.sid} joined room {room_code}", flush=True)
+    proxy = get_game_server_proxy()
+    if player_id:
+        result = proxy.get_player_view(room_code, player_id)
+        if "error" not in result:
+            with _sid_lock:
+                _sid_to_player[request.sid] = player_id
+                _player_to_sid[player_id] = request.sid
+        return result
+    return proxy.get_session(room_code)
 
 
 @socketio.on("disconnect")
@@ -319,6 +431,8 @@ def handle_disconnect(reason):
     """On disconnect, remove player from session via leave_game RPC."""
     with _sid_lock:
         player_id = _sid_to_player.pop(request.sid, None)
+        if player_id:
+            _player_to_sid.pop(player_id, None)
     if player_id:
         try:
             proxy = get_game_server_proxy()
@@ -332,6 +446,21 @@ def handle_disconnect(reason):
 # Flask catch-all — serves React SPA for all non-Socket.IO routes (D-10, D-11)
 # Registered AFTER socketio init to avoid shadowing Socket.IO routes (Pitfall 3)
 # ---------------------------------------------------------------------------
+
+@app.route("/static/images/<path:filename>")
+def serve_image(filename):
+    """Serve server-controlled object images from the image bank."""
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), "..", "server", "images"),
+        filename,
+    )
+
+
+@app.route("/favicon.ico")
+def favicon():
+    """Avoid noisy 404s from browsers requesting a favicon during demos."""
+    return "", 204
+
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")

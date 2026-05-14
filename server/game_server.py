@@ -288,6 +288,44 @@ class GameServer:
                 })
             return result
 
+    def get_player_view(self, room_code: str, player_id: str) -> dict:
+        """Return session state plus the caller's current private image assignment."""
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return {"error": "sala nao encontrada"}
+            if player_id not in {player.player_id for player in session.players}:
+                return {"error": "jogador nao encontrado"}
+
+            result = {
+                "room_code": session.room_code,
+                "status": session.status,
+                "players": session.get_player_dicts(),
+                "max_turns": session.max_turns,
+                "object_assignment": None,
+            }
+            if session.turn_machine is not None:
+                result.update({
+                    "phase": session.turn_machine.current_phase,
+                    "remaining_seconds": session.turn_machine.remaining_seconds,
+                    "current_turn": session.turn_machine.current_turn,
+                })
+                filename = None
+                object_name = session.current_image_assignments.get(player_id)
+                if object_name is None and session.turn_machine.current_turn_state is not None:
+                    object_name = session.turn_machine.current_turn_state.image_assignments.get(player_id)
+                if object_name is not None:
+                    for candidate_filename, candidate_name in self._image_manifest.items():
+                        if candidate_name == object_name:
+                            filename = candidate_filename
+                            break
+                    if filename is not None:
+                        result["object_assignment"] = {
+                            "image_url": f"/static/images/{filename}",
+                            "object_name": object_name,
+                        }
+            return result
+
     def _set_session_ended(self, room_code: str) -> None:
         """Mark session as ENDED. Called from TurnMachine on_game_ended callback (D-07).
 
