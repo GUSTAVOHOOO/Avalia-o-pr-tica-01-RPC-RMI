@@ -91,7 +91,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Wave 0: test stubs (test_turn_state.py, test_scoring.py) + image bank (server/images/manifest.json + 8 placeholder images)
-- [ ] 04-02-PLAN.md — Server data layer: TurnState dataclass, TurnMachine phase hooks (HINT_PHASE TurnState creation, GUESS_PHASE hints revelation, SCORING_PHASE callback), GameServer image manifest + accumulated_scores
+- [x] 04-02-PLAN.md — Server data layer: TurnState dataclass, TurnMachine phase hooks (HINT_PHASE TurnState creation, GUESS_PHASE hints revelation, SCORING_PHASE callback), GameServer image manifest + accumulated_scores
 - [ ] 04-03-PLAN.md — GameServer RPC methods (submit_hint, submit_guess, skip_guess, get_scores), _calculate_score_deltas pure function, all 18 unit tests green
 - [ ] 04-04-PLAN.md — Bridge wiring: _player_to_sid reverse map, on_hint_received / on_guess_result / on_score_updated / on_object_assigned callbacks, submit_hint/guess/skip handlers, /static/images/ Flask route
 - [ ] 04-05-PLAN.md — GameScreen.tsx: SecretImagePanel, HintPhasePanel, GuessPhasePanel, ScoringPhasePanel + 4-terminal smoke test checkpoint

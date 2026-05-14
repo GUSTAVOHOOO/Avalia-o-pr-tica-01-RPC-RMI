@@ -74,7 +74,7 @@
 
 - [x] **IMAGE-01**: Servidor possui banco de imagens em pasta local com mapeamento nome_arquivo → nome_objeto
 - [x] **IMAGE-02**: No início de cada rodada servidor distribui uma imagem única por jogador via evento `OBJECT_ASSIGNED` contendo URL estática Flask (não bytes via Pyro5)
-- [ ] **IMAGE-03**: Imagens servidas como arquivos estáticos pela camada Flask, nunca via serialização Pyro5
+- [x] **IMAGE-03**: Imagens servidas como arquivos estáticos pela camada Flask, nunca via serialização Pyro5
 
 ### Chat em Tempo Real (CHAT)
 
@@ -186,7 +186,7 @@
 | SCORE-05 | Phase 4: Core Turn Loop | Complete |
 | IMAGE-01 | Phase 4: Core Turn Loop | Complete |
 | IMAGE-02 | Phase 4: Core Turn Loop | Complete |
-| IMAGE-03 | Phase 4: Core Turn Loop | Pending |
+| IMAGE-03 | Phase 4: Core Turn Loop | Complete |
 | CHAT-01 | Phase 7: Reconnection + End-of-Game | Pending |
 | CHAT-02 | Phase 7: Reconnection + End-of-Game | Pending |
 | CHAT-03 | Phase 7: Reconnection + End-of-Game | Pending |
