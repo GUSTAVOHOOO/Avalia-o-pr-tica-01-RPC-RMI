@@ -15,7 +15,7 @@ import string
 import sys
 import threading
 import uuid
-from typing import List
+from typing import List, Optional
 
 # Allow `import config` when running as `python server/game_server.py`
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,6 +24,7 @@ import Pyro5.api
 
 import config
 from server.event_broadcaster import EventBroadcaster
+from server.turn_machine import TurnMachine
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ class GameSession:
     max_turns: int
     status: str  # "WAITING" | "IN_PROGRESS" | "ENDED"
     players: List[PlayerInfo] = dataclasses.field(default_factory=list)
+    turn_machine: object = dataclasses.field(default=None, repr=False)  # TurnMachine instance, set by start_game()
 
     @property
     def player_count(self) -> int:
@@ -266,12 +268,27 @@ class GameServer:
                 return {"error": "sala nao encontrada"}
             return {"players": session.get_player_dicts()}
 
+    def _set_session_ended(self, room_code: str) -> None:
+        """Mark session as ENDED. Called from TurnMachine on_game_ended callback (D-07).
+
+        Acquires self.lock independently — called from TurnMachine's timer thread
+        which never holds GameServer.lock, so no re-entrancy risk (T-03-10).
+        """
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is not None:
+                session.status = "ENDED"
+
     def start_game(self, player_id: str) -> bool:
         """Start the game session if caller is host and ≥2 players are present.
 
         Validates host authorization (T-02-01, SESSION-06).  Broadcasts
         GAME_STARTED outside the lock.  max_turns is taken from the session
         (set at create_game time) — not accepted from the caller (CR-04).
+
+        Creates a TurnMachine with on_game_ended callback and calls
+        turn_machine.start() AFTER broadcasting game_started, so browsers
+        navigate to GameScreen before the first phase_changed fires (T-03-07).
 
         Args:
             player_id: The player attempting to start the game (must be host).
@@ -280,6 +297,7 @@ class GameServer:
             True if game was started; False if validation fails.
         """
         broadcast_data = None
+        target_session = None
 
         with self.lock:
             # O(1) lookup via _player_to_room index (WR-06)
@@ -294,13 +312,50 @@ class GameServer:
                 return False
 
             target_session.status = "IN_PROGRESS"
+
+            room_code_for_cb = target_session.room_code  # capture for closure
+            target_session.turn_machine = TurnMachine(
+                room_code=target_session.room_code,
+                max_turns=target_session.max_turns,
+                broadcaster=self.broadcaster,
+                on_game_ended=lambda: self._set_session_ended(room_code_for_cb),
+            )
+
             broadcast_data = {
                 "room_code": target_session.room_code,
                 "players": target_session.get_player_dicts(),
             }
 
-        # Broadcast OUTSIDE the lock
+        # Broadcast OUTSIDE the lock — then start TurnMachine AFTER game_started (T-03-07)
         self.broadcaster.broadcast("game_started", broadcast_data)
+        target_session.turn_machine.start()  # fires ROUND_START AFTER game_started broadcast
+        return True
+
+    def advance_phase(self, player_id: str = None) -> bool:
+        """Operator/test RPC: skip current phase immediately.
+
+        Not decorated with @oneway — caller needs confirmation before asserting state
+        (RESEARCH.md Pitfall 5).
+        player_id accepted but not validated in Phase 3 (authorization deferred per CONTEXT.md).
+
+        Returns True if advance succeeded; False if no active turn machine for this player's session.
+        """
+        with self.lock:
+            room_code = self._player_to_room.get(player_id) if player_id else None
+            # If no player_id, try first IN_PROGRESS session (for test convenience)
+            if room_code is None:
+                room_code = next(
+                    (rc for rc, s in self.sessions.items() if s.status == "IN_PROGRESS"),
+                    None
+                )
+            if room_code is None:
+                return False
+            session = self.sessions.get(room_code)
+            if session is None or session.turn_machine is None:
+                return False
+            tm = session.turn_machine
+
+        tm.advance_phase_manual()
         return True
 
     def leave_game(self, player_id: str) -> bool:
