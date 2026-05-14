@@ -679,6 +679,10 @@ class GameServer:
                 return {"error": "exchange_not_pending"}  # Pitfall 6
 
             record.status = "accepted" if accept else "rejected"
+            if not accept:
+                # Release slots so both players can exchange with others this turn
+                turn_state.exchange_participants.discard(record.requester_id)
+                turn_state.exchange_participants.discard(record.target_id)
 
         return {"ok": True}
 
