@@ -1,7 +1,8 @@
 ---
 phase: 4
 slug: core-turn-loop
-status: draft
+status: approved
+reviewed_at: 2026-05-14
 shadcn_initialized: false
 preset: none
 created: 2026-05-14
@@ -447,4 +448,4 @@ No third-party component registries are used. All components are built inline us
 - [ ] Dimension 5 Spacing: PASS
 - [ ] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-05-14
