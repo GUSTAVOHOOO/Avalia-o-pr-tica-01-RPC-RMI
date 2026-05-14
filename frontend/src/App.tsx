@@ -4,6 +4,7 @@ import CreateGame from './pages/CreateGame'
 import JoinGame from './pages/JoinGame'
 import JoinByCode from './pages/JoinByCode'
 import Lobby from './pages/Lobby'
+import GameScreen from './pages/GameScreen'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/join" element={<JoinGame />} />
         <Route path="/join/:code" element={<JoinByCode />} />
         <Route path="/lobby/:sessionId" element={<Lobby />} />
+        <Route path="/game/:roomCode" element={<GameScreen />} />
       </Routes>
     </BrowserRouter>
   )
