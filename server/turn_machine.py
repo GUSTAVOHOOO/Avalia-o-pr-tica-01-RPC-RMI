@@ -203,6 +203,8 @@ class TurnMachine:
                 }
                 if phase == "GUESS_PHASE" and self.current_turn_state is not None:
                     broadcast_data["hints"] = dict(self.current_turn_state.hints_submitted)
+                if phase == "SPY_PHASE" and self.current_turn_state is not None:
+                    broadcast_data["spy_targets"] = list(self.current_turn_state.completed_exchanges)
 
         # Broadcast OUTSIDE the lock — network I/O must never hold the state lock
         if game_ended:
@@ -227,6 +229,10 @@ class TurnMachine:
           - If current_turn >= max_turns → "GAME_ENDED" (last turn, D-07)
           - Otherwise → increment current_turn, return "HINT_PHASE" (D-06: skip ROUND_START)
 
+        For EXCHANGE_PHASE (D-06):
+          - If completed_exchanges is empty (or current_turn_state is None) → "SCORING_PHASE"
+          - Otherwise → "SPY_PHASE"
+
         For all other phases: return the next item in PHASE_SEQUENCE.
         """
         with self.lock:
@@ -235,6 +241,12 @@ class TurnMachine:
                     return "GAME_ENDED"
                 self.current_turn += 1
                 return "HINT_PHASE"  # Skip ROUND_START on subsequent turns (D-06)
+            # Phase 5 addition: skip SPY_PHASE if no completed exchanges (D-06)
+            if current_phase == "EXCHANGE_PHASE":
+                ts = self.current_turn_state
+                if ts is None or not ts.completed_exchanges:
+                    return "SCORING_PHASE"
+                return "SPY_PHASE"
             idx = PHASE_SEQUENCE.index(current_phase)
             return PHASE_SEQUENCE[idx + 1]
 

@@ -49,7 +49,12 @@ def test_phase_cycle():
 
     GAME_ENDED produces type="game_ended" (not "phase_changed") so it does not
     appear in the phase list — this is expected.
+
+    Phase 5 note: _compute_next("EXCHANGE_PHASE") skips SPY_PHASE when
+    completed_exchanges is empty. We inject a fake completed exchange so the full
+    PHASE_SEQUENCE (including SPY_PHASE) is exercised.
     """
+    from server.turn_state import TurnState
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM1", max_turns=1, broadcaster=broadcaster)
 
@@ -58,7 +63,11 @@ def test_phase_cycle():
     tm.advance_phase_manual()     # HINT_PHASE
     tm.advance_phase_manual()     # GUESS_PHASE
     tm.advance_phase_manual()     # EXCHANGE_PHASE
-    tm.advance_phase_manual()     # SPY_PHASE
+    # Inject a completed exchange AFTER entering EXCHANGE_PHASE so SPY_PHASE is not skipped
+    if tm.current_turn_state is None:
+        tm.current_turn_state = TurnState(turn_number=1, player_ids=[])
+    tm.current_turn_state.completed_exchanges.append("fake-exid")
+    tm.advance_phase_manual()     # SPY_PHASE (D-06, completed_exchanges non-empty)
     tm.advance_phase_manual()     # SCORING_PHASE
     tm.advance_phase_manual()     # TURN_END → triggers GAME_ENDED (max_turns=1)
 
@@ -161,11 +170,15 @@ def test_generation_counter():
 def test_game_ended_after_last_turn():
     """D-07: After final TURN_END with max_turns=1, broadcaster receives game_ended (not phase_changed).
 
-    Advances manually through all 7 phases (start() + 6 advance_phase_manual() calls).
-    The 7th advance (TURN_END → _compute_next sees current_turn >= max_turns) should
+    Advances manually through all phases (start() + advance_phase_manual() calls).
+    The final advance (TURN_END → _compute_next sees current_turn >= max_turns) should
     broadcast "game_ended", not "phase_changed". Verify the game_ended event is present
     and that no phase_changed event has phase=None (which would indicate a bug).
+
+    Phase 5 note: With empty completed_exchanges, EXCHANGE_PHASE → SCORING_PHASE (D-06),
+    so SPY_PHASE is skipped. Adjust call count accordingly.
     """
+    from server.turn_state import TurnState
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM5", max_turns=1, broadcaster=broadcaster)
 
@@ -173,10 +186,14 @@ def test_game_ended_after_last_turn():
     tm.advance_phase_manual()     # HINT_PHASE
     tm.advance_phase_manual()     # GUESS_PHASE
     tm.advance_phase_manual()     # EXCHANGE_PHASE
-    tm.advance_phase_manual()     # SPY_PHASE
+    # Inject a completed exchange AFTER entering EXCHANGE_PHASE so SPY_PHASE is not skipped
+    if tm.current_turn_state is None:
+        tm.current_turn_state = TurnState(turn_number=1, player_ids=[])
+    tm.current_turn_state.completed_exchanges.append("fake-exid")
+    tm.advance_phase_manual()     # SPY_PHASE (D-06, completed_exchanges non-empty)
     tm.advance_phase_manual()     # SCORING_PHASE
     tm.advance_phase_manual()     # TURN_END
-    tm.advance_phase_manual()     # GAME_ENDED (max_turns=1, current_turn >= max_turns)
+    tm.advance_phase_manual()     # GAME_ENDED (max_turns=1, _compute_next("TURN_END") → GAME_ENDED)
 
     assert any(e["type"] == "game_ended" for e in broadcaster.events), (
         f"Expected a game_ended event after final TURN_END. Events: {broadcaster.events}"
