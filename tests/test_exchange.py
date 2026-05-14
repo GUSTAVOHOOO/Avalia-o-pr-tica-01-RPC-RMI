@@ -114,19 +114,73 @@ def test_respond_exchange_reject():
     assert record.status == "rejected", f"Expected status=rejected, got {record.status}"
 
 
+def _setup_accepted_exchange(phase="EXCHANGE_PHASE"):
+    """Helper: creates a server with one accepted exchange ready for hint submission."""
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state(phase)
+    req = server.request_exchange(alice_id, bob_id)
+    exchange_id = req["exchange_id"]
+    server.respond_exchange(bob_id, exchange_id, True)
+    # Clear broadcaster events accumulated during setup
+    server.broadcaster.events.clear()
+    return server, session, alice_id, bob_id, charlie_id, exchange_id
+
+
 def test_submit_exchange_hint_completes():
     """EXCHANGE-03: submit_exchange_hint() by both parties sets status to completed."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
+
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    result = server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+    assert result == {"ok": True}, f"Expected ok=True, got {result}"
+
+    turn_state = session.turn_machine.current_turn_state
+    record = turn_state.exchanges[exchange_id]
+    assert record.status == "completed", f"Expected status=completed, got {record.status}"
+    assert exchange_id in turn_state.completed_exchanges, (
+        f"exchange_id not in completed_exchanges: {turn_state.completed_exchanges}"
+    )
 
 
 def test_exchange_completed_payload():
     """EXCHANGE-04: EXCHANGE_COMPLETED broadcast contains no hint content."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
+
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+
+    broadcast_events = [
+        e for e in server.broadcaster.events
+        if e["type"] == "exchange_completed"
+    ]
+    assert len(broadcast_events) == 1, (
+        f"Expected 1 exchange_completed broadcast, got {len(broadcast_events)}"
+    )
+    payload = broadcast_events[0]["data"]
+    assert "requester_hint" not in payload, "requester_hint must not appear in broadcast payload"
+    assert "target_hint" not in payload, "target_hint must not appear in broadcast payload"
+    assert "room_code" in payload
+    assert "exchange_id" in payload
+    assert "requester_id" in payload
+    assert "target_id" in payload
 
 
 def test_private_hints_delivered():
     """EXCHANGE-05: Private hints delivered to both participants after completion."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
+
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+
+    private_events = [
+        e for e in server.broadcaster.events
+        if e["type"] == "exchange_hints"
+    ]
+    assert len(private_events) == 2, (
+        f"Expected 2 exchange_hints events, got {len(private_events)}"
+    )
+    target_ids = {e["player_id"] for e in private_events}
+    assert alice_id in target_ids, "No exchange_hints event for alice"
+    assert bob_id in target_ids, "No exchange_hints event for bob"
 
 
 def test_exchange_one_per_turn():
@@ -164,28 +218,91 @@ def test_spy_phase_entered_when_exchange_exists():
     )
 
 
+def _setup_spy_state():
+    """Helper: creates server with SPY_PHASE active and one completed exchange ready for spying."""
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+    req = server.request_exchange(alice_id, bob_id)
+    exchange_id = req["exchange_id"]
+    server.respond_exchange(bob_id, exchange_id, True)
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+    # Move to SPY_PHASE
+    session.turn_machine.current_phase = "SPY_PHASE"
+    server.broadcaster.events.clear()
+    return server, session, alice_id, bob_id, charlie_id, exchange_id
+
+
 # --- SPY tests (plan 03) ---
 
 def test_spy_wrong_phase():
     """SPY-01: attempt_spy() in EXCHANGE_PHASE returns invalid_phase."""
-    pytest.skip("stub — implement in plan 03")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+    # Override phase back to EXCHANGE_PHASE for this test
+    session.turn_machine.current_phase = "EXCHANGE_PHASE"
+    result = server.attempt_spy(charlie_id, exchange_id)
+    assert result == {"error": "invalid_phase"}, f"Expected invalid_phase, got {result}"
 
 
 def test_spy_discovery_probability():
     """SPY-02: Over 100 calls, approximately 30% result in discovered: True + score penalty."""
-    pytest.skip("stub — implement in plan 03")
+    discovered_count = 0
+    for _ in range(100):
+        server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+        result = server.attempt_spy(charlie_id, exchange_id)
+        assert result.get("ok") is True, f"Unexpected result: {result}"
+        if result.get("discovered") is True:
+            discovered_count += 1
+
+    fraction = discovered_count / 100
+    assert 0.15 <= fraction <= 0.50, (
+        f"Discovery fraction {fraction:.2f} outside expected range [0.15, 0.50]"
+    )
 
 
 def test_spy_success_private():
     """SPY-03: Undetected spy receives both hints silently; no public broadcast."""
-    pytest.skip("stub — implement in plan 03")
+    import random as _random
+    # Force success by patching random.random to return 0.99 (above 0.3 threshold)
+    original_random = _random.random
+    _random.random = lambda: 0.99
+    try:
+        server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+        result = server.attempt_spy(charlie_id, exchange_id)
+    finally:
+        _random.random = original_random
+
+    assert result == {"ok": True, "discovered": False}, f"Expected not-discovered, got {result}"
+
+    private_events = [
+        e for e in server.broadcaster.events
+        if e["type"] == "spy_success"
+    ]
+    assert len(private_events) == 1, f"Expected 1 spy_success event, got {len(private_events)}"
+    assert private_events[0].get("player_id") == charlie_id
+
+    public_events = [
+        e for e in server.broadcaster.events
+        if e["type"] == "spy_discovered"
+    ]
+    assert len(public_events) == 0, f"Expected no spy_discovered broadcast, got {len(public_events)}"
 
 
 def test_spy_own_exchange_rejected():
     """SPY-04: Exchange participant attempting spy returns cannot_spy_own_exchange."""
-    pytest.skip("stub — implement in plan 03")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+    # alice is the requester — she cannot spy on her own exchange
+    result = server.attempt_spy(alice_id, exchange_id)
+    assert result == {"error": "cannot_spy_own_exchange"}, (
+        f"Expected cannot_spy_own_exchange, got {result}"
+    )
 
 
 def test_spy_one_per_turn():
     """SPY-05: Second attempt_spy() from same player returns already_used_spy."""
-    pytest.skip("stub — implement in plan 03")
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+    server.attempt_spy(charlie_id, exchange_id)
+
+    result = server.attempt_spy(charlie_id, exchange_id)
+    assert result == {"error": "already_used_spy"}, (
+        f"Expected already_used_spy on second attempt, got {result}"
+    )

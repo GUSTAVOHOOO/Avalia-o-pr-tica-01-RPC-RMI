@@ -682,6 +682,168 @@ class GameServer:
 
         return {"ok": True}
 
+    def submit_exchange_hint(self, player_id: str, exchange_id: str, hint_word: str) -> dict:
+        """Submit a private hint word for an accepted exchange.
+
+        When both participants have submitted their hint, the exchange is
+        marked completed, a public EXCHANGE_COMPLETED event is broadcast
+        (without hint content — EXCHANGE-04), and private hints are sent
+        to each participant via send_to_player (EXCHANGE-05).
+
+        Args:
+            player_id: The participant submitting the hint.
+            exchange_id: The accepted exchange to submit a hint for.
+            hint_word: The private hint word (stripped, max 50 chars).
+
+        Returns:
+            {"ok": True}  on success
+            {"error": str}  on validation failure
+        """
+        broadcast_data = None
+        private_deliveries = []
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "EXCHANGE_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+
+            record = turn_state.exchanges.get(exchange_id)
+            if record is None or record.status != "accepted":
+                return {"error": "exchange_not_accepted"}
+
+            cleaned_hint = str(hint_word).strip()[:50]
+            if player_id == record.requester_id:
+                if record.requester_hint is not None:
+                    return {"error": "already_submitted"}
+                record.requester_hint = cleaned_hint
+            elif player_id == record.target_id:
+                if record.target_hint is not None:
+                    return {"error": "already_submitted"}
+                record.target_hint = cleaned_hint
+            else:
+                return {"error": "not_participant"}
+
+            # Completion check: both hints present → mark completed (Pitfall 5 — inside lock)
+            if record.requester_hint is not None and record.target_hint is not None:
+                record.status = "completed"
+                turn_state.completed_exchanges.append(exchange_id)
+                # Public payload — NO hint content (EXCHANGE-04, T-05-06)
+                broadcast_data = {
+                    "room_code": room_code,
+                    "exchange_id": exchange_id,
+                    "requester_id": record.requester_id,
+                    "target_id": record.target_id,
+                }
+                # Private delivery snapshots — captured inside lock (EXCHANGE-05)
+                private_deliveries = [
+                    (record.requester_id, "exchange_hints", {
+                        "target_player_id": record.requester_id,
+                        "room_code": room_code,
+                        "exchange_id": exchange_id,
+                        "from_player_id": record.target_id,
+                        "hint_word": record.target_hint,
+                    }),
+                    (record.target_id, "exchange_hints", {
+                        "target_player_id": record.target_id,
+                        "room_code": room_code,
+                        "exchange_id": exchange_id,
+                        "from_player_id": record.requester_id,
+                        "hint_word": record.requester_hint,
+                    }),
+                ]
+
+        # All broadcasts OUTSIDE the lock (Pitfall 1)
+        if broadcast_data:
+            self.broadcaster.broadcast("exchange_completed", broadcast_data)
+        for target_id, event_type, data in private_deliveries:
+            self.broadcaster.send_to_player(target_id, event_type, data)
+        return {"ok": True}
+
+    def attempt_spy(self, player_id: str, exchange_id: str) -> dict:
+        """Attempt to spy on a completed exchange during SPY_PHASE.
+
+        30% probability of discovery: spy loses 10pts, public SPY_DISCOVERED
+        broadcast emitted.  70% success: spy receives both private hints via
+        send_to_player with no public broadcast (SPY-02, SPY-03).
+
+        Guards: spy_attempts set (one attempt per turn — SPY-05); completed_exchanges
+        membership (D-02 — only spy on completed exchanges); self-spy prohibited
+        (SPY-04).  All score mutation and probability resolution occur inside the
+        lock; all broadcaster calls occur after lock exit (Pitfall 1).
+
+        Args:
+            player_id: The player attempting to spy.
+            exchange_id: The completed exchange to spy on.
+
+        Returns:
+            {"ok": True, "discovered": bool}  on success
+            {"error": str}  on validation failure
+        """
+        discovered_data = None
+        success_data = None
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "SPY_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id in turn_state.spy_attempts:
+                return {"error": "already_used_spy"}
+            # D-02: spy targets are completed exchanges only (Pitfall 4)
+            if exchange_id not in turn_state.completed_exchanges:
+                return {"error": "exchange_not_found"}
+            record = turn_state.exchanges[exchange_id]
+            if player_id in (record.requester_id, record.target_id):
+                return {"error": "cannot_spy_own_exchange"}  # SPY-04
+
+            turn_state.spy_attempts.add(player_id)
+            player_name = next(
+                (p.player_name for p in session.players if p.player_id == player_id), player_id
+            )
+
+            if random.random() < 0.3:   # 30% discovery (SPY-02)
+                session.accumulated_scores[player_id] = (
+                    session.accumulated_scores.get(player_id, 0) - 10
+                )
+                discovered_data = {
+                    "room_code": room_code,
+                    "spy_id": player_id,
+                    "spy_name": player_name,
+                    "exchange_id": exchange_id,
+                    "penalty": -10,
+                }
+            else:
+                success_data = {
+                    "target_player_id": player_id,
+                    "room_code": room_code,
+                    "exchange_id": exchange_id,
+                    "hints": [
+                        {"from_player_id": record.requester_id, "hint_word": record.requester_hint},
+                        {"from_player_id": record.target_id, "hint_word": record.target_hint},
+                    ],
+                }
+
+        # Broadcast OUTSIDE the lock (Pitfall 1)
+        if discovered_data:
+            self.broadcaster.broadcast("spy_discovered", discovered_data)
+            return {"ok": True, "discovered": True}
+        else:
+            self.broadcaster.send_to_player(player_id, "spy_success", success_data)
+            return {"ok": True, "discovered": False}
+
     def get_scores(self, player_id: str) -> dict:
         """Return accumulated scores for the player's session."""
         with self.lock:
