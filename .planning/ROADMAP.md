@@ -69,7 +69,12 @@ Plans:
   2. Letting the timer expire on any phase advances the game to the next phase automatically; a log entry shows the generation counter prevented any double-advance
   3. Manually advancing a phase (test RPC call) cancels the current timer; the old timer does not fire after the phase has already moved on
   4. A full cycle from ROUND_START through TURN_END completes without deadlock or silent freeze when tested with two connected browser sessions
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — TurnMachine class + unit tests: config.PHASE_DURATIONS, server/turn_machine.py (generation counter, threading.Timer, broadcast-outside-lock), 5 pytest tests covering TURN-01 through TURN-04
+- [ ] 03-02-PLAN.md — GameServer + Bridge wiring: start_game() creates TurnMachine, advance_phase() RPC method, BridgeCallbackReceiver.on_phase_changed and on_game_ended
+- [ ] 03-03-PLAN.md — React GameScreen: PhaseBadge, CountdownDisplay, /game/:roomCode route, App.tsx route addition, 4-terminal smoke test checkpoint
 
 ### Phase 4: Core Turn Loop
 **Goal**: A full, playable turn is possible: each player receives a unique object image, submits a one-word hint visible to all, guesses another player's object, scores are calculated and broadcast, and the scoreboard updates
@@ -145,7 +150,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|----------------|--------|-----------|
 | 1. RPC Infrastructure + Callback Pipeline | 4/4 | Complete   | 2026-05-12 |
 | 2. Player Session + Lobby | 2/2 | Complete    | 2026-05-13 |
-| 3. Phase Machine + Timer | 0/TBD | Not started | - |
+| 3. Phase Machine + Timer | 0/3 | Not started | - |
 | 4. Core Turn Loop | 0/TBD | Not started | - |
 | 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |
 | 6. Synonym Arbitration | 0/TBD | Not started | - |
