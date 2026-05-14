@@ -72,7 +72,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — TurnMachine class + unit tests: config.PHASE_DURATIONS, server/turn_machine.py (generation counter, threading.Timer, broadcast-outside-lock), 5 pytest tests covering TURN-01 through TURN-04
+- [x] 03-01-PLAN.md — TurnMachine class + unit tests: config.PHASE_DURATIONS, server/turn_machine.py (generation counter, threading.Timer, broadcast-outside-lock), 5 pytest tests covering TURN-01 through TURN-04
 - [ ] 03-02-PLAN.md — GameServer + Bridge wiring: start_game() creates TurnMachine, advance_phase() RPC method, BridgeCallbackReceiver.on_phase_changed and on_game_ended
 - [ ] 03-03-PLAN.md — React GameScreen: PhaseBadge, CountdownDisplay, /game/:roomCode route, App.tsx route addition, 4-terminal smoke test checkpoint
 
