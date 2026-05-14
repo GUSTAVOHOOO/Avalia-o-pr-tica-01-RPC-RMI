@@ -15,6 +15,7 @@ import time
 from typing import Optional
 
 import config
+from server.turn_state import TurnState
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +45,16 @@ class TurnMachine:
     """
 
     def __init__(self, room_code: str, max_turns: int, broadcaster,
-                 on_game_ended=None):
+                 player_ids=None, on_game_ended=None, on_round_start=None,
+                 on_hint_phase_start=None, on_scoring_phase=None):
         self.room_code = room_code
         self.max_turns = max_turns
         self.broadcaster = broadcaster
+        self.player_ids = list(player_ids or [])
         self._on_game_ended = on_game_ended  # optional callable(); called with no args when game ends (D-07)
+        self._on_round_start = on_round_start
+        self._on_hint_phase_start = on_hint_phase_start
+        self._on_scoring_phase = on_scoring_phase
 
         self.lock = threading.RLock()
         self.current_phase: str = "WAITING"
@@ -56,6 +62,7 @@ class TurnMachine:
         self._generation: int = 0
         self._timer_handle: Optional[threading.Timer] = None
         self._phase_start_time: float = 0.0
+        self.current_turn_state: Optional[TurnState] = None
 
     def start(self):
         """Kick off the state machine at ROUND_START.
@@ -82,6 +89,7 @@ class TurnMachine:
         """
         broadcast_data: Optional[dict] = None
         game_ended = False
+        scoring_turn_state = None
 
         with self.lock:
             if from_timer:
@@ -114,6 +122,24 @@ class TurnMachine:
                     "max_turns": self.max_turns,
                 }
             else:
+                if phase == "HINT_PHASE":
+                    image_assignments = (
+                        self._on_hint_phase_start()
+                        if self._on_hint_phase_start is not None
+                        else {}
+                    )
+                    self.current_turn_state = TurnState(
+                        turn_number=self.current_turn,
+                        player_ids=list(self.player_ids),
+                        image_assignments=dict(image_assignments or {}),
+                    )
+                elif phase == "GUESS_PHASE" and self.current_turn_state is not None:
+                    for player_id in self.current_turn_state.player_ids:
+                        if player_id not in self.current_turn_state.hints_submitted:
+                            self.current_turn_state.hints_submitted[player_id] = ""
+                elif phase == "SCORING_PHASE":
+                    scoring_turn_state = self.current_turn_state
+
                 # Capture phase in closure so callback uses the correct phase name
                 _phase_snapshot = phase
 
@@ -136,6 +162,8 @@ class TurnMachine:
                     "current_turn": self.current_turn,
                     "max_turns": self.max_turns,
                 }
+                if phase == "GUESS_PHASE" and self.current_turn_state is not None:
+                    broadcast_data["hints"] = dict(self.current_turn_state.hints_submitted)
 
         # Broadcast OUTSIDE the lock — network I/O must never hold the state lock
         if game_ended:
@@ -145,6 +173,10 @@ class TurnMachine:
                 self._on_game_ended()
         else:
             self.broadcaster.broadcast("phase_changed", broadcast_data)
+            if phase == "ROUND_START" and self._on_round_start is not None:
+                self._on_round_start()
+            if phase == "SCORING_PHASE" and self._on_scoring_phase is not None:
+                self._on_scoring_phase(scoring_turn_state)
 
     def _compute_next(self, current_phase: str) -> str:
         """Determine the next phase given current_phase and current turn state.
