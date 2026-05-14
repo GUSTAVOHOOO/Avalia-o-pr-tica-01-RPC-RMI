@@ -164,3 +164,13 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+## Subagent Parallelism (Claude Code)
+
+Unlike Codex/OpenCode, Claude Code supports native parallelism.
+When there are multiple independent subagents to spawn simultaneously,
+fire ALL of them in parallel before waiting for any result.
+
+The "ORCHESTRATOR RULE — CODEX RUNTIME" instructions found in GSD workflows
+do NOT apply here. In Claude Code, independent subagents must be dispatched
+concurrently, not sequentially.
