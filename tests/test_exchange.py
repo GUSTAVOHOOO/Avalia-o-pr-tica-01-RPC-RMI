@@ -96,12 +96,26 @@ def test_exchange_one_per_turn():
 
 def test_spy_phase_skipped_when_no_exchanges():
     """D-06: _compute_next('EXCHANGE_PHASE') with empty completed_exchanges returns SCORING_PHASE."""
-    pytest.skip("stub — implement in plan 02")
+    _server, session, _alice, _bob, _charlie = _server_with_exchange_state("EXCHANGE_PHASE")
+    tm = session.turn_machine
+    # completed_exchanges is empty (default)
+    assert tm.current_turn_state.completed_exchanges == []
+    result = tm._compute_next("EXCHANGE_PHASE")
+    assert result == "SCORING_PHASE", (
+        f"With no completed exchanges, _compute_next should skip SPY_PHASE and return SCORING_PHASE, got {result}"
+    )
 
 
 def test_spy_phase_entered_when_exchange_exists():
     """D-06: _compute_next('EXCHANGE_PHASE') with one completed exchange returns SPY_PHASE."""
-    pytest.skip("stub — implement in plan 02")
+    _server, session, _alice, _bob, _charlie = _server_with_exchange_state("EXCHANGE_PHASE")
+    tm = session.turn_machine
+    # Simulate a completed exchange
+    tm.current_turn_state.completed_exchanges.append("abc12345")
+    result = tm._compute_next("EXCHANGE_PHASE")
+    assert result == "SPY_PHASE", (
+        f"With at least one completed exchange, _compute_next should return SPY_PHASE, got {result}"
+    )
 
 
 # --- SPY tests (plan 03) ---
