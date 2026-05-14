@@ -589,20 +589,23 @@ return () => {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **SCORE-03 tie-breaker for owner: "all guessed" means all-in-game or all-who-targeted?**
    - What we know: REQUIREMENTS.md says "se todos acertaram: -10 pts"
    - What's unclear: "todos" = all players in game, or all who targeted this owner?
    - Recommendation: Planner reads REQUIREMENTS.md SCORE-03 verbatim and implements literally; safe assumption is "all who targeted this owner" given other rules reference N guessers.
+   - **RESOLVED:** Plan 03 `_calculate_score_deltas()` implements "all who targeted this owner guessed correctly" interpretation — iterates `guesses_made` to count targeters, not all players in game.
 
 2. **Image assignment timing: ROUND_START vs HINT_PHASE start?**
    - What we know: CONTEXT.md explicitly leaves this to the planner.
    - Recommendation: Assign at ROUND_START (5s phase). Players see their image during the "Round starting..." pause before hint input appears. This avoids showing blank secret panel when HINT_PHASE opens.
+   - **RESOLVED:** Plan 02 wires `on_round_start` callback on TurnMachine fired when `_advance_to("ROUND_START")` is called. GameServer._assign_images_for_turn is invoked via this callback, sends OBJECT_ASSIGNED before HINT_PHASE opens.
 
 3. **Should TurnMachine._advance_to be called directly from submit_hint, or via a method on TurnMachine?**
    - What we know: `advance_phase_manual()` exists for test use. Direct `_advance_to()` call would work.
    - Recommendation: Add a `advance_to_guess_phase()` public method on TurnMachine that is the "all hints submitted" fast-path. Keeps the call clean and avoids exposing the internal `_advance_to` signature to callers outside TurnMachine.
+   - **RESOLVED:** Plan 03 `submit_hint()` calls `session.turn_machine._advance_to("GUESS_PHASE")` directly from within GameServer (same process, already consistent with how `advance_phase_manual()` is used in tests). No separate public wrapper needed at this scope.
 
 ---
 
