@@ -1,11 +1,8 @@
-"""Wave 0 test stubs for Phase 4 turn-state behavior.
+"""Unit tests for Phase 4 turn-state behavior."""
 
-The production modules used by these tests are introduced in later Phase 4
-plans. Each test skips before importing those modules so the suite can collect
-cleanly while the implementation is still pending.
-"""
-
-import pytest
+from server.game_server import GameServer
+from server.turn_machine import TurnMachine
+from server.turn_state import TurnState
 
 
 class FakeBroadcaster:
@@ -26,24 +23,50 @@ class FakeBroadcaster:
         })
 
 
+def _server_with_turn_state(phase="HINT_PHASE"):
+    server = GameServer()
+    host = server.create_game("Alice", "PYRO:fake.alice@127.0.0.1:9999", 3)
+    join = server.join_game("Bob", "PYRO:fake.bob@127.0.0.1:9999", host["room_code"])
+    player_ids = [host["player_id"], join["player_id"]]
+    server.broadcaster = FakeBroadcaster()
+    session = server.sessions[host["room_code"]]
+    session.turn_machine = TurnMachine(
+        host["room_code"],
+        max_turns=3,
+        broadcaster=server.broadcaster,
+        player_ids=player_ids,
+    )
+    session.turn_machine.current_phase = phase
+    session.turn_machine.current_turn_state = TurnState(
+        turn_number=1,
+        player_ids=player_ids,
+        image_assignments={
+            host["player_id"]: "apple",
+            join["player_id"]: "bicycle",
+        },
+    )
+    return server, session, host["player_id"], join["player_id"]
+
+
 def test_submit_hint():
     """HINT-01: submit_hint() stores hint word in TurnState.hints_submitted."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, _other_id = _server_with_turn_state()
 
-    server = GameServer()
-    result = server.submit_hint("p1", "red")
+    result = server.submit_hint(player_id, " red ")
+
     assert result == {"ok": True}, f"submit_hint should accept first hint, got {result}"
+    assert session.turn_machine.current_turn_state.hints_submitted[player_id] == "red", (
+        f"hint should be stripped and stored, got {session.turn_machine.current_turn_state.hints_submitted}"
+    )
 
 
 def test_submit_hint_duplicate():
     """HINT-01: second submit_hint() call returns already_submitted."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, _session, player_id, _other_id = _server_with_turn_state()
 
-    server = GameServer()
-    server.submit_hint("p1", "red")
-    result = server.submit_hint("p1", "round")
+    server.submit_hint(player_id, "red")
+    result = server.submit_hint(player_id, "round")
+
     assert result == {"error": "already_submitted"}, (
         f"duplicate hint should be rejected, got {result}"
     )
@@ -51,26 +74,25 @@ def test_submit_hint_duplicate():
 
 def test_hint_received_payload():
     """HINT-02: HINT_RECEIVED includes counts but not the hint word."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, _session, player_id, _other_id = _server_with_turn_state()
 
-    server = GameServer()
-    server.submit_hint("p1", "red")
+    server.submit_hint(player_id, "red")
     event = server.broadcaster.events[-1]["data"]
-    assert "hint_word" not in event and event["hints_count"] == 1, (
-        f"HINT_RECEIVED should hide hint word and include counts, got {event}"
+
+    assert "hint_word" not in event, f"HINT_RECEIVED must not reveal hint word, got {event}"
+    assert event["hints_count"] == 1 and event["total_players"] == 2, (
+        f"HINT_RECEIVED should include counts, got {event}"
     )
 
 
 def test_hint_empty_on_timer():
     """HINT-03: timer expiry fills missing hints with empty strings."""
-    from server.turn_machine import TurnMachine
-
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM1", max_turns=1, broadcaster=broadcaster, player_ids=["p1", "p2"])
     tm.start()
     tm.advance_phase_manual()
     tm.advance_phase_manual()
+
     assert tm.current_turn_state.hints_submitted["p2"] == "", (
         f"missing hint should be backfilled as empty string, got {tm.current_turn_state.hints_submitted}"
     )
@@ -78,57 +100,59 @@ def test_hint_empty_on_timer():
 
 def test_all_hints_auto_advance():
     """HINT-04: all submitted hints auto-advance to GUESS_PHASE."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, other_id = _server_with_turn_state()
 
-    server = GameServer()
-    server.submit_hint("p1", "red")
-    server.submit_hint("p2", "round")
-    phases = [e["data"].get("phase") for e in server.broadcaster.events]
-    assert "GUESS_PHASE" in phases, f"all hints should auto-advance, got phases {phases}"
+    server.submit_hint(player_id, "red")
+    server.submit_hint(other_id, "round")
+
+    assert session.turn_machine.current_phase == "GUESS_PHASE", (
+        f"all hints should auto-advance to GUESS_PHASE, got {session.turn_machine.current_phase}"
+    )
 
 
 def test_submit_guess_correct():
     """GUESS-01: correct case-insensitive guess records the guesser."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server = GameServer()
-    result = server.submit_guess("p1", "p2", "Apple")
-    assert result == {"ok": True}, f"correct guess should be accepted, got {result}"
+    result = server.submit_guess(player_id, other_id, "Bicycle")
+
+    assert result == {"ok": True, "is_correct": True}, f"correct guess should be accepted, got {result}"
+    assert player_id in session.turn_machine.current_turn_state.correct_guesses, (
+        f"correct guesser should be recorded, got {session.turn_machine.current_turn_state.correct_guesses}"
+    )
 
 
 def test_skip_guess():
     """GUESS-02: skip_guess() records None for the player."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, _other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server = GameServer()
-    result = server.skip_guess("p1")
+    result = server.skip_guess(player_id)
+
     assert result == {"ok": True}, f"skip_guess should return ok, got {result}"
+    assert session.turn_machine.current_turn_state.guesses_made[player_id] is None, (
+        f"skip should record None, got {session.turn_machine.current_turn_state.guesses_made}"
+    )
 
 
 def test_guess_result_broadcast():
     """GUESS-04: GUESS_RESULT includes is_correct and guesser_id."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, _session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server = GameServer()
-    server.submit_guess("p1", "p2", "apple")
+    server.submit_guess(player_id, other_id, "bicycle")
     event = server.broadcaster.events[-1]["data"]
-    assert event["guesser_id"] == "p1" and isinstance(event["is_correct"], bool), (
+
+    assert event["guesser_id"] == player_id and isinstance(event["is_correct"], bool), (
         f"GUESS_RESULT payload should include guesser_id and is_correct, got {event}"
     )
 
 
 def test_guess_one_per_turn():
     """GUESS-05: a second submit_guess() call returns already_guessed."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, _session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server = GameServer()
-    server.submit_guess("p1", "p2", "apple")
-    result = server.submit_guess("p1", "p3", "chair")
+    server.submit_guess(player_id, other_id, "bicycle")
+    result = server.submit_guess(player_id, other_id, "chair")
+
     assert result == {"error": "already_guessed"}, (
         f"second guess should be rejected, got {result}"
     )
@@ -136,11 +160,10 @@ def test_guess_one_per_turn():
 
 def test_guess_no_self_target():
     """GUESS-05: self-target guesses return cannot_guess_own_object."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, _session, player_id, _other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server = GameServer()
-    result = server.submit_guess("p1", "p1", "apple")
+    result = server.submit_guess(player_id, player_id, "apple")
+
     assert result == {"error": "cannot_guess_own_object"}, (
         f"self-target guess should be rejected, got {result}"
     )
@@ -148,28 +171,27 @@ def test_guess_no_self_target():
 
 def test_image_manifest_load():
     """IMAGE-01: GameServer loads server/images/manifest.json at startup."""
-    from server.game_server import GameServer
-
     server = GameServer()
+
     assert len(server._image_manifest) >= 8, (
         f"_image_manifest should have at least 8 entries, got {len(server._image_manifest)}"
+    )
+    assert all(isinstance(value, str) and value for value in server._image_manifest.values()), (
+        f"manifest object names should be non-empty strings, got {server._image_manifest}"
     )
 
 
 def test_object_assigned_payload():
     """IMAGE-02: OBJECT_ASSIGNED includes image_url and object_name."""
-    from server.game_server import GameServer
-
     server = GameServer()
     host = server.create_game("Alice", "PYRO:fake.alice@127.0.0.1:9999", 3)
     server.join_game("Bob", "PYRO:fake.bob@127.0.0.1:9999", host["room_code"])
     server.broadcaster = FakeBroadcaster()
-    started = server.start_game(host["player_id"])
 
-    assert started is True, "start_game should succeed with host and two players"
+    server._assign_images_for_turn(host["room_code"])
     object_events = [e for e in server.broadcaster.events if e["type"] == "object_assigned"]
-    assert len(object_events) == 2, f"expected 2 object_assigned events, got {object_events}"
 
+    assert len(object_events) == 2, f"expected 2 object_assigned events, got {object_events}"
     event = object_events[0]["data"]
     assert event["image_url"].startswith("/static/images/") and event["object_name"], (
         f"OBJECT_ASSIGNED payload should include static URL and object name, got {event}"
@@ -178,12 +200,16 @@ def test_object_assigned_payload():
 
 def test_score_updated_payload():
     """SCORE-04: SCORE_UPDATED includes turn number and per-player score rows."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, other_id = _server_with_turn_state("SCORING_PHASE")
+    turn_state = session.turn_machine.current_turn_state
+    turn_state.guesses_made = {player_id: other_id}
+    turn_state.correct_guesses = [player_id]
 
-    server = GameServer()
+    server._accumulate_scores(session.room_code, turn_state)
     event = server.broadcaster.events[-1]["data"]
     score = event["scores"][0]
+
+    assert event["turn_number"] == 1, f"score event should include turn_number, got {event}"
     assert {"player_id", "player_name", "turn_delta", "total"} <= set(score), (
         f"score rows should include player_id, player_name, turn_delta, total, got {score}"
     )
@@ -191,11 +217,12 @@ def test_score_updated_payload():
 
 def test_get_scores():
     """SCORE-05: get_scores() returns integer totals keyed by player_id."""
-    pytest.skip("Wave 0 stub - implement in Plan 02/03")
-    from server.game_server import GameServer
+    server, session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
+    session.accumulated_scores[player_id] = 20
+    session.accumulated_scores[other_id] = -10
 
-    server = GameServer()
-    scores = server.get_scores("p1")
-    assert all(isinstance(total, int) for total in scores.values()), (
-        f"get_scores should return integer totals, got {scores}"
+    result = server.get_scores(player_id)
+
+    assert result == {"scores": {player_id: 20, other_id: -10}}, (
+        f"get_scores should return accumulated scores, got {result}"
     )

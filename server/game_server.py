@@ -25,7 +25,7 @@ import Pyro5.api
 
 import config
 from server.event_broadcaster import EventBroadcaster
-from server.turn_machine import TurnMachine
+from server.turn_machine import TurnMachine, _calculate_score_deltas
 
 
 # ---------------------------------------------------------------------------
@@ -345,8 +345,39 @@ class GameServer:
             return snapshot
 
     def _accumulate_scores(self, room_code: str, turn_state) -> None:
-        """Plan 03 replaces this no-op with real score accumulation."""
-        print(f"[GameServer] scoring callback fired for room {room_code}", flush=True)
+        """Compute, accumulate, and broadcast score updates for a turn."""
+        if turn_state is None:
+            return
+
+        for player_id in turn_state.player_ids:
+            if player_id not in turn_state.guesses_made:
+                turn_state.guesses_made[player_id] = None
+        deltas = _calculate_score_deltas(turn_state)
+
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return
+            player_names = {p.player_id: p.player_name for p in session.players}
+            scores_payload = []
+            for player_id in turn_state.player_ids:
+                total = session.accumulated_scores.get(player_id, 0) + deltas.get(player_id, 0)
+                session.accumulated_scores[player_id] = total
+                scores_payload.append({
+                    "player_id": player_id,
+                    "player_name": player_names.get(player_id, ""),
+                    "turn_delta": deltas.get(player_id, 0),
+                    "total": total,
+                })
+
+        self.broadcaster.broadcast(
+            "score_updated",
+            {
+                "room_code": room_code,
+                "turn_number": turn_state.turn_number,
+                "scores": scores_payload,
+            },
+        )
 
     def start_game(self, player_id: str) -> bool:
         """Start the game session if caller is host and ≥2 players are present.
@@ -430,6 +461,103 @@ class GameServer:
 
         tm.advance_phase_manual()
         return True
+
+    def submit_hint(self, player_id: str, hint_word: str) -> dict:
+        """Submit one public blind hint for the current turn."""
+        broadcast_data = None
+        turn_machine = None
+        should_advance = False
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "HINT_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id in turn_state.hints_submitted:
+                return {"error": "already_submitted"}
+
+            turn_state.hints_submitted[player_id] = str(hint_word).strip()[:50]
+            broadcast_data = {
+                "room_code": room_code,
+                "hints_count": len(turn_state.hints_submitted),
+                "total_players": len(turn_state.player_ids),
+            }
+            should_advance = turn_state.all_hints_submitted()
+
+        self.broadcaster.broadcast("hint_received", broadcast_data)
+        if should_advance:
+            turn_machine.advance_to_guess_phase()
+        return {"ok": True}
+
+    def submit_guess(self, player_id: str, target_player_id: str, guess_word: str) -> dict:
+        """Submit one guess for another player's object."""
+        broadcast_data = None
+        is_correct = False
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "GUESS_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id == target_player_id:
+                return {"error": "cannot_guess_own_object"}
+            if player_id in turn_state.guesses_made:
+                return {"error": "already_guessed"}
+
+            guess_clean = str(guess_word).strip()[:50]
+            expected = str(turn_state.image_assignments.get(target_player_id, ""))
+            is_correct = guess_clean.lower() == expected.strip().lower()
+            turn_state.guesses_made[player_id] = target_player_id
+            if is_correct:
+                turn_state.correct_guesses.append(player_id)
+            broadcast_data = {
+                "room_code": room_code,
+                "guesser_id": player_id,
+                "target_player_id": target_player_id,
+                "is_correct": is_correct,
+            }
+
+        self.broadcaster.broadcast("guess_result", broadcast_data)
+        return {"ok": True, "is_correct": is_correct}
+
+    def skip_guess(self, player_id: str) -> dict:
+        """Record that a player skipped their guess for this turn."""
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "GUESS_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id in turn_state.guesses_made:
+                return {"error": "already_guessed"}
+            turn_state.guesses_made[player_id] = None
+        return {"ok": True}
+
+    def get_scores(self, player_id: str) -> dict:
+        """Return accumulated scores for the player's session."""
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None:
+                return {"error": "session_not_found"}
+            return {"scores": dict(session.accumulated_scores)}
 
     def leave_game(self, player_id: str) -> bool:
         """Remove a player from their session.
