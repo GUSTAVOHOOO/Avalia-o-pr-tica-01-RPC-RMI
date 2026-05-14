@@ -107,7 +107,13 @@ Plans:
   2. A player attempting a second exchange in the same turn receives an error; a player attempting to spy on their own exchange is rejected
   3. Over 30 repeated spy attempts in test, approximately 30% result in `SPY_DISCOVERED` broadcast with the spy's name and -10 point penalty applied; the remaining ~70% deliver the two private hints silently to the spy with no public event
   4. Player B rejects an exchange request; no private hints are exchanged and no public `EXCHANGE_COMPLETED` is broadcast
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Wave 0: test stubs (tests/test_exchange.py with 15 pytest.skip stubs covering all EXCHANGE-xx and SPY-xx requirements)
+- [ ] 05-02-PLAN.md — Data layer: ExchangeRecord dataclass + 4 new TurnState fields; _compute_next() SPY_PHASE skip (D-06); spy_targets in PHASE_CHANGED broadcast
+- [ ] 05-03-PLAN.md — GameServer RPC methods: request_exchange, respond_exchange, submit_exchange_hint, attempt_spy; all 11 exchange+spy unit tests green
+- [ ] 05-04-PLAN.md — Bridge wiring: 5 BridgeCallbackReceiver.on_* push methods + 4 Socket.IO handlers; 4-terminal smoke test checkpoint
 
 ### Phase 6: Synonym Arbitration
 **Goal**: Guess arbitration accepts Portuguese synonyms and near-matches via `wn` + own-pt, with exact-match as permanent fallback, and the image word set is validated against WordNet at server startup
@@ -159,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Player Session + Lobby | 2/2 | Complete    | 2026-05-13 |
 | 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
-| 5. Exchange + Spy Mechanics | 0/TBD | Not started | - |
+| 5. Exchange + Spy Mechanics | 0/4 | Not started | - |
 | 6. Synonym Arbitration | 0/TBD | Not started | - |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
