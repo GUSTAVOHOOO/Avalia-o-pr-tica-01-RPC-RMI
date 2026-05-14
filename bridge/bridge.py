@@ -468,6 +468,66 @@ def handle_skip_guess(data):
     return result
 
 
+@socketio.on("request_exchange")
+def handle_request_exchange(data):
+    """Forward exchange request to GameServer; identity resolved from SID."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.request_exchange(player_id, (data or {}).get("target_player_id", ""))
+    print(f"[BRIDGE] request_exchange from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("respond_exchange")
+def handle_respond_exchange(data):
+    """Forward exchange accept/reject to GameServer."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.respond_exchange(
+        player_id,
+        (data or {}).get("exchange_id", ""),
+        bool((data or {}).get("accept", False)),
+    )
+    print(f"[BRIDGE] respond_exchange from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("submit_exchange_hint")
+def handle_submit_exchange_hint(data):
+    """Forward private hint submission to GameServer."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.submit_exchange_hint(
+        player_id,
+        (data or {}).get("exchange_id", ""),
+        (data or {}).get("hint_word", ""),
+    )
+    print(f"[BRIDGE] submit_exchange_hint from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("attempt_spy")
+def handle_attempt_spy(data):
+    """Forward spy attempt to GameServer."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.attempt_spy(player_id, (data or {}).get("exchange_id", ""))
+    print(f"[BRIDGE] attempt_spy from player {player_id} -> {result}", flush=True)
+    return result
+
+
 @socketio.on("join_room")
 def handle_join_room(data):
     """Join (or rejoin) the Socket.IO room for a given room_code.
