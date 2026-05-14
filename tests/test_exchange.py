@@ -56,22 +56,62 @@ def _server_with_exchange_state(phase="EXCHANGE_PHASE"):
 
 def test_request_exchange():
     """EXCHANGE-01: request_exchange() returns {ok, exchange_id} and creates ExchangeRecord."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+    result = server.request_exchange(alice_id, bob_id)
+
+    assert result.get("ok") is True, f"Expected ok=True, got {result}"
+    exchange_id = result.get("exchange_id")
+    assert isinstance(exchange_id, str) and len(exchange_id) == 8, (
+        f"Expected 8-char exchange_id, got {exchange_id!r}"
+    )
+
+    turn_state = session.turn_machine.current_turn_state
+    assert exchange_id in turn_state.exchanges, "exchange_id not found in turn_state.exchanges"
+    record = turn_state.exchanges[exchange_id]
+    assert record.requester_id == alice_id
+    assert record.target_id == bob_id
+    assert record.status == "pending"
+
+    assert alice_id in turn_state.exchange_participants, "alice not in exchange_participants"
+    assert bob_id in turn_state.exchange_participants, "bob not in exchange_participants"
+
+    # Private notification sent to target
+    events = [e for e in server.broadcaster.events if e["type"] == "exchange_requested"]
+    assert len(events) == 1, f"Expected 1 exchange_requested event, got {len(events)}"
+    assert events[0].get("player_id") == bob_id
 
 
 def test_request_exchange_wrong_phase():
     """EXCHANGE-01: request_exchange() in wrong phase returns invalid_phase."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("HINT_PHASE")
+    result = server.request_exchange(alice_id, bob_id)
+    assert result == {"error": "invalid_phase"}, f"Expected invalid_phase error, got {result}"
 
 
 def test_respond_exchange_accept():
     """EXCHANGE-02: respond_exchange(accept=True) transitions ExchangeRecord status to accepted."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+    req_result = server.request_exchange(alice_id, bob_id)
+    exchange_id = req_result["exchange_id"]
+
+    result = server.respond_exchange(bob_id, exchange_id, True)
+    assert result == {"ok": True}, f"Expected ok=True, got {result}"
+
+    record = session.turn_machine.current_turn_state.exchanges[exchange_id]
+    assert record.status == "accepted", f"Expected status=accepted, got {record.status}"
 
 
 def test_respond_exchange_reject():
     """EXCHANGE-02: respond_exchange(accept=False) transitions ExchangeRecord status to rejected."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+    req_result = server.request_exchange(alice_id, bob_id)
+    exchange_id = req_result["exchange_id"]
+
+    result = server.respond_exchange(bob_id, exchange_id, False)
+    assert result == {"ok": True}, f"Expected ok=True, got {result}"
+
+    record = session.turn_machine.current_turn_state.exchanges[exchange_id]
+    assert record.status == "rejected", f"Expected status=rejected, got {record.status}"
 
 
 def test_submit_exchange_hint_completes():
@@ -91,7 +131,13 @@ def test_private_hints_delivered():
 
 def test_exchange_one_per_turn():
     """EXCHANGE-06: Second request_exchange() from same player returns already_used_exchange."""
-    pytest.skip("stub — implement in plan 02")
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+    server.request_exchange(alice_id, bob_id)
+
+    result = server.request_exchange(alice_id, charlie_id)
+    assert result == {"error": "already_used_exchange"}, (
+        f"Expected already_used_exchange error, got {result}"
+    )
 
 
 def test_spy_phase_skipped_when_no_exchanges():

@@ -26,6 +26,7 @@ import Pyro5.api
 import config
 from server.event_broadcaster import EventBroadcaster
 from server.turn_machine import TurnMachine, _calculate_score_deltas
+from server.turn_state import ExchangeRecord
 
 
 # ---------------------------------------------------------------------------
@@ -586,6 +587,99 @@ class GameServer:
             if player_id in turn_state.guesses_made:
                 return {"error": "already_guessed"}
             turn_state.guesses_made[player_id] = None
+        return {"ok": True}
+
+    def request_exchange(self, player_id: str, target_player_id: str) -> dict:
+        """Request a private 1-on-1 hint exchange with another player.
+
+        Both players' exchange slots are reserved immediately at request time
+        to prevent double-requests while one is pending (Pitfall 2).
+
+        Args:
+            player_id: The player initiating the exchange.
+            target_player_id: The player being asked to exchange.
+
+        Returns:
+            {"ok": True, "exchange_id": str}  on success
+            {"error": str}  on validation failure
+        """
+        broadcast_data = None
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "EXCHANGE_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id == target_player_id:
+                return {"error": "cannot_exchange_with_self"}
+            if player_id in turn_state.exchange_participants:
+                return {"error": "already_used_exchange"}
+            if target_player_id in turn_state.exchange_participants:
+                return {"error": "target_already_exchanging"}
+            player_ids_in_session = {p.player_id for p in session.players}
+            if target_player_id not in player_ids_in_session:
+                return {"error": "target_not_found"}
+
+            exchange_id = str(uuid.uuid4())[:8]
+            record = ExchangeRecord(requester_id=player_id, target_id=target_player_id)
+            turn_state.exchanges[exchange_id] = record
+            # Reserve both slots at request time (Pitfall 2 — CONTEXT.md D-03)
+            turn_state.exchange_participants.add(player_id)
+            turn_state.exchange_participants.add(target_player_id)
+
+            broadcast_data = {
+                "target_player_id": target_player_id,
+                "room_code": room_code,
+                "exchange_id": exchange_id,
+                "requester_id": player_id,
+            }
+
+        # send_to_player OUTSIDE the lock (Pitfall 1)
+        self.broadcaster.send_to_player(target_player_id, "exchange_requested", broadcast_data)
+        return {"ok": True, "exchange_id": exchange_id}
+
+    def respond_exchange(self, player_id: str, exchange_id: str, accept: bool) -> dict:
+        """Accept or reject an incoming exchange request.
+
+        Only the target player (recipient) may respond. Guards against
+        double-responses via status check (Pitfall 6).
+
+        Args:
+            player_id: The player responding (must be the exchange target).
+            exchange_id: The exchange to accept or reject.
+            accept: True to accept; False to reject.
+
+        Returns:
+            {"ok": True}  on success
+            {"error": str}  on validation failure
+        """
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "EXCHANGE_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            record = turn_state.exchanges.get(exchange_id)
+            if record is None:
+                return {"error": "exchange_not_found"}
+            if player_id != record.target_id:
+                return {"error": "not_exchange_target"}
+            if record.status != "pending":
+                return {"error": "exchange_not_pending"}  # Pitfall 6
+
+            record.status = "accepted" if accept else "rejected"
+
         return {"ok": True}
 
     def get_scores(self, player_id: str) -> dict:
