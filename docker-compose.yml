@@ -1,7 +1,7 @@
 services:
   nameserver:
     build: .
-    command: python -m Pyro5.utils.nameserver --host 0.0.0.0
+    command: python -m Pyro5.nameserver --host 0.0.0.0
     networks:
       - game-net
     healthcheck:
@@ -9,7 +9,7 @@ services:
         - CMD
         - python
         - -c
-        - "import Pyro5.api; Pyro5.api.locate_ns(host='localhost')"
+        - "import Pyro5.api; Pyro5.api.locate_ns(host='127.0.0.1')"
       interval: 5s
       timeout: 3s
       retries: 6
@@ -20,7 +20,7 @@ services:
     command: python server/game_server.py
     environment:
       PYRO_NS_HOST: nameserver
-      PYRO_BIND_HOST: gameserver
+      DAEMON_BIND_HOST: gameserver
     networks:
       - game-net
     depends_on:
@@ -47,7 +47,7 @@ services:
     command: python bridge/bridge.py
     environment:
       PYRO_NS_HOST: nameserver
-      PYRO_BIND_HOST: bridge
+      DAEMON_BIND_HOST: bridge
       FLASK_BIND_HOST: "0.0.0.0"
     ports:
       - "5000:5000"

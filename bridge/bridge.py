@@ -122,7 +122,7 @@ def start_callback_daemon() -> tuple:
     Returns (uri_str, daemon) so the caller can pass the URI to GameServer
     and hold a reference to prevent GC of the daemon.
     """
-    daemon = Pyro5.api.Daemon(host=config.PYRO_BIND_HOST)
+    daemon = Pyro5.api.Daemon(host=config.DAEMON_BIND_HOST)
     receiver = BridgeCallbackReceiver()
     uri = daemon.register(receiver)
     t = threading.Thread(target=daemon.requestLoop, daemon=True)

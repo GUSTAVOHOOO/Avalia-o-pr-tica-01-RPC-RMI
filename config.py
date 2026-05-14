@@ -6,7 +6,7 @@ NS_HOST = os.environ.get("PYRO_NS_HOST", "127.0.0.1")
 
 # Bind host for Pyro5 daemons — 127.0.0.1 locally; set to container name in Docker
 # so the advertised URI is reachable from other containers on the same network
-PYRO_BIND_HOST = os.environ.get("PYRO_BIND_HOST", "127.0.0.1")
+DAEMON_BIND_HOST = os.environ.get("DAEMON_BIND_HOST", "127.0.0.1")
 
 # Bind host for Flask/SocketIO — 127.0.0.1 locally; 0.0.0.0 in Docker
 FLASK_BIND_HOST = os.environ.get("FLASK_BIND_HOST", "127.0.0.1")
