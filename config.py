@@ -19,3 +19,14 @@ FRONTEND_DIST_PATH = os.environ.get(
     "FRONTEND_DIST",
     os.path.join(os.path.dirname(__file__), "frontend", "dist"),
 )
+
+# Per-phase timer durations in seconds (D-04). Tune here; never in game logic.
+PHASE_DURATIONS = {
+    "ROUND_START":    5,
+    "HINT_PHASE":    60,
+    "GUESS_PHASE":   60,
+    "EXCHANGE_PHASE": 45,
+    "SPY_PHASE":     30,
+    "SCORING_PHASE": 15,
+    "TURN_END":       5,
+}
