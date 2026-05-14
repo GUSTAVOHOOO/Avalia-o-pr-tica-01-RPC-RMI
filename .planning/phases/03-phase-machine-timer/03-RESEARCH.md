@@ -586,17 +586,17 @@ def test_generation_counter():
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `advance_phase_manual` be exposed directly on `TurnMachine` or only via `GameServer.advance_phase()`?**
    - What we know: CONTEXT.md says `advance_phase(player_id=None)` is exposed on `GameServer` (operator RPC call). `TurnMachine` has an internal method.
    - What's unclear: Whether the test client calls `GameServer.advance_phase()` which delegates to `session.turn_machine.advance_phase_manual()`, or whether `TurnMachine` itself should be Pyro5-exposed (it should not — it has no `@Pyro5.api.expose`).
-   - Recommendation: `GameServer.advance_phase(player_id)` is the single RPC entry point; it looks up the session's `turn_machine` and calls `advance_phase_manual()`. This keeps `TurnMachine` as a plain Python class with no Pyro5 coupling.
+   - RESOLVED: `GameServer.advance_phase(player_id)` is the single RPC entry point; it looks up the session's `turn_machine` and calls `advance_phase_manual()`. This keeps `TurnMachine` as a plain Python class with no Pyro5 coupling. Implemented in Plan 03-02 Task 1.
 
 2. **Should `TurnMachine.start()` be called before or after `GAME_STARTED` broadcast in `start_game()`?**
    - What we know: CONTEXT.md §Integration Points says "calls `turn_machine.start()` to kick off ROUND_START after broadcasting GAME_STARTED."
    - What's unclear: Exact ordering with respect to the lock release in `start_game()`.
-   - Recommendation: `start_game()` should follow: (1) acquire lock, set status, snapshot broadcast_data, (2) release lock, (3) `broadcaster.broadcast("game_started", ...)`, (4) `session.turn_machine.start()`. This ensures browsers navigate before the first `phase_changed` fires.
+   - RESOLVED: `start_game()` follows: (1) acquire lock, set status, snapshot broadcast_data, (2) release lock, (3) `broadcaster.broadcast("game_started", ...)`, (4) `session.turn_machine.start()`. This ensures browsers navigate before the first `phase_changed` fires. Implemented in Plan 03-02 Task 1.
 
 ---
 
