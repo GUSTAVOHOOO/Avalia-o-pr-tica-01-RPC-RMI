@@ -298,6 +298,22 @@ def handle_start_game(data):
     return {"success": success}
 
 
+@socketio.on("join_room")
+def handle_join_room(data):
+    """Join (or rejoin) the Socket.IO room for a given room_code.
+
+    Called by GameScreen on mount so the client starts receiving
+    room-scoped phase_changed / game_ended events (D-09).
+
+    Payload: {room_code: str}
+    """
+    room_code = (data or {}).get("room_code", "")
+    if not room_code:
+        return {"error": "room_code required"}
+    join_room(room_code)
+    print(f"[BRIDGE] join_room: sid={request.sid} joined room {room_code}", flush=True)
+
+
 @socketio.on("disconnect")
 def handle_disconnect(reason):
     """On disconnect, remove player from session via leave_game RPC."""
