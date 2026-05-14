@@ -1,8 +1,8 @@
-"""Unit tests for Phase 4 turn-state behavior."""
+"""Unit tests for Phase 4 turn-state behavior (+ Phase 5 ExchangeRecord additions)."""
 
 from server.game_server import GameServer
 from server.turn_machine import TurnMachine
-from server.turn_state import TurnState
+from server.turn_state import TurnState, ExchangeRecord
 
 
 class FakeBroadcaster:
@@ -238,3 +238,40 @@ def test_get_scores():
     assert result == {"scores": {player_id: 20, other_id: -10}}, (
         f"get_scores should return accumulated scores, got {result}"
     )
+
+
+# --- Phase 5: ExchangeRecord dataclass tests ---
+
+def test_exchange_record_defaults():
+    """ExchangeRecord defaults: status='pending', requester_hint=None, target_hint=None."""
+    er = ExchangeRecord("p1", "p2")
+    assert er.status == "pending", f"default status should be 'pending', got {er.status}"
+    assert er.requester_hint is None, f"requester_hint should default to None, got {er.requester_hint}"
+    assert er.target_hint is None, f"target_hint should default to None, got {er.target_hint}"
+
+
+def test_exchange_record_fields():
+    """ExchangeRecord stores requester_id and target_id correctly."""
+    er = ExchangeRecord("alice", "bob")
+    assert er.requester_id == "alice"
+    assert er.target_id == "bob"
+
+
+def test_turn_state_new_fields_defaults():
+    """TurnState has 4 new Phase 5 fields with correct default values."""
+    ts = TurnState(1, ["p1"])
+    assert ts.exchanges == {}, f"exchanges should default to {{}}, got {ts.exchanges}"
+    assert ts.completed_exchanges == [], f"completed_exchanges should default to [], got {ts.completed_exchanges}"
+    assert ts.exchange_participants == set(), (
+        f"exchange_participants should default to set(), got {ts.exchange_participants}"
+    )
+    assert ts.spy_attempts == set(), f"spy_attempts should default to set(), got {ts.spy_attempts}"
+
+
+def test_turn_state_all_hints_still_works():
+    """all_hints_submitted() still functions correctly after Phase 5 additions."""
+    ts = TurnState(1, ["p1", "p2"])
+    assert ts.all_hints_submitted() is False, "no hints yet — should be False"
+    ts.hints_submitted["p1"] = "red"
+    ts.hints_submitted["p2"] = "round"
+    assert ts.all_hints_submitted() is True, "all hints submitted — should be True"
