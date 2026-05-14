@@ -47,20 +47,20 @@
 
 ### Troca Privada de Dicas (EXCHANGE)
 
-- [ ] **EXCHANGE-01**: Durante EXCHANGE_PHASE jogador pode solicitar troca privada com outro jogador via `request_exchange(player_id, target_player)`, retorna exchange_id
-- [ ] **EXCHANGE-02**: Jogador receptor recebe notificação privada de pedido e pode aceitar/recusar via `respond_exchange(player_id, exchange_id, accept)`
-- [ ] **EXCHANGE-03**: Se aceito, ambos enviam uma palavra privada via `submit_exchange_hint(player_id, exchange_id, hint_word)` — pode ser verdadeira ou falsa
-- [ ] **EXCHANGE-04**: Servidor broadcast público `EXCHANGE_COMPLETED` para todos sem revelar conteúdo das dicas
-- [ ] **EXCHANGE-05**: Dicas privadas são entregues apenas aos dois participantes via evento privado
-- [ ] **EXCHANGE-06**: Cada jogador pode participar de no máximo uma troca por turno
+- [x] **EXCHANGE-01**: Durante EXCHANGE_PHASE jogador pode solicitar troca privada com outro jogador via `request_exchange(player_id, target_player)`, retorna exchange_id
+- [x] **EXCHANGE-02**: Jogador receptor recebe notificação privada de pedido e pode aceitar/recusar via `respond_exchange(player_id, exchange_id, accept)`
+- [x] **EXCHANGE-03**: Se aceito, ambos enviam uma palavra privada via `submit_exchange_hint(player_id, exchange_id, hint_word)` — pode ser verdadeira ou falsa
+- [x] **EXCHANGE-04**: Servidor broadcast público `EXCHANGE_COMPLETED` para todos sem revelar conteúdo das dicas
+- [x] **EXCHANGE-05**: Dicas privadas são entregues apenas aos dois participantes via evento privado
+- [x] **EXCHANGE-06**: Cada jogador pode participar de no máximo uma troca por turno
 
 ### Mecânica de Espionagem (SPY)
 
-- [ ] **SPY-01**: Durante SPY_PHASE (simultâneo ao EXCHANGE) jogador pode tentar espiar troca ativa via `attempt_spy(player_id, exchange_id)`
-- [ ] **SPY-02**: Probabilidade de descoberta é 30% (configurável); se descoberto: espião perde 10pts e broadcast público `SPY_DISCOVERED` com nome do espião
-- [ ] **SPY-03**: Se não descoberto: espião recebe as duas dicas privadas em silêncio, nenhuma notificação pública
-- [ ] **SPY-04**: Jogador só pode espiar trocas das quais não é participante
-- [ ] **SPY-05**: Cada jogador pode espiar no máximo uma troca por turno
+- [x] **SPY-01**: Durante SPY_PHASE (simultâneo ao EXCHANGE) jogador pode tentar espiar troca ativa via `attempt_spy(player_id, exchange_id)`
+- [x] **SPY-02**: Probabilidade de descoberta é 30% (configurável); se descoberto: espião perde 10pts e broadcast público `SPY_DISCOVERED` com nome do espião
+- [x] **SPY-03**: Se não descoberto: espião recebe as duas dicas privadas em silêncio, nenhuma notificação pública
+- [x] **SPY-04**: Jogador só pode espiar trocas das quais não é participante
+- [x] **SPY-05**: Cada jogador pode espiar no máximo uma troca por turno
 
 ### Sistema de Pontuação (SCORE)
 
@@ -168,17 +168,17 @@
 | GUESS-03 | Phase 6: Synonym Arbitration | Pending |
 | GUESS-04 | Phase 4: Core Turn Loop | Complete |
 | GUESS-05 | Phase 4: Core Turn Loop | Complete |
-| EXCHANGE-01 | Phase 5: Exchange + Spy Mechanics | Pending |
-| EXCHANGE-02 | Phase 5: Exchange + Spy Mechanics | Pending |
-| EXCHANGE-03 | Phase 5: Exchange + Spy Mechanics | Pending |
-| EXCHANGE-04 | Phase 5: Exchange + Spy Mechanics | Pending |
-| EXCHANGE-05 | Phase 5: Exchange + Spy Mechanics | Pending |
-| EXCHANGE-06 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SPY-01 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SPY-02 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SPY-03 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SPY-04 | Phase 5: Exchange + Spy Mechanics | Pending |
-| SPY-05 | Phase 5: Exchange + Spy Mechanics | Pending |
+| EXCHANGE-01 | Phase 5: Exchange + Spy Mechanics | Complete |
+| EXCHANGE-02 | Phase 5: Exchange + Spy Mechanics | Complete |
+| EXCHANGE-03 | Phase 5: Exchange + Spy Mechanics | Complete |
+| EXCHANGE-04 | Phase 5: Exchange + Spy Mechanics | Complete |
+| EXCHANGE-05 | Phase 5: Exchange + Spy Mechanics | Complete |
+| EXCHANGE-06 | Phase 5: Exchange + Spy Mechanics | Complete |
+| SPY-01 | Phase 5: Exchange + Spy Mechanics | Complete |
+| SPY-02 | Phase 5: Exchange + Spy Mechanics | Complete |
+| SPY-03 | Phase 5: Exchange + Spy Mechanics | Complete |
+| SPY-04 | Phase 5: Exchange + Spy Mechanics | Complete |
+| SPY-05 | Phase 5: Exchange + Spy Mechanics | Complete |
 | SCORE-01 | Phase 4: Core Turn Loop | Complete |
 | SCORE-02 | Phase 4: Core Turn Loop | Complete |
 | SCORE-03 | Phase 4: Core Turn Loop | Complete |

@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Player Session + Lobby** - Players create rooms, join via code, lobby list updates in real time, host starts game (completed 2026-05-13)
 - [x] **Phase 3: Phase Machine + Timer** - Full HINT→GUESS→EXCHANGE→SPY→SCORING cycle with auto-timeout transitions (completed 2026-05-14)
 - [x] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated (completed 2026-05-14)
-- [ ] **Phase 5: Exchange + Spy Mechanics** - Private hint exchanges and espionage with public discovery notifications
+- [x] **Phase 5: Exchange + Spy Mechanics** - Private hint exchanges and espionage with public discovery notifications (completed 2026-05-14)
 - [ ] **Phase 6: Synonym Arbitration** - Portuguese WordNet synonym matching replaces exact-match-only guessing
 - [ ] **Phase 7: Reconnection + End-of-Game** - State restoration on reconnect, post-game podium, play-again vote, chat
 - [ ] **Phase 8: UI Polish + Technical Report** - Polished web UI across all screens and complete academic report
@@ -110,10 +110,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Wave 0: test stubs (tests/test_exchange.py with 15 pytest.skip stubs covering all EXCHANGE-xx and SPY-xx requirements)
-- [ ] 05-02-PLAN.md — Data layer: ExchangeRecord dataclass + 4 new TurnState fields; _compute_next() SPY_PHASE skip (D-06); spy_targets in PHASE_CHANGED broadcast
-- [ ] 05-03-PLAN.md — GameServer RPC methods: request_exchange, respond_exchange, submit_exchange_hint, attempt_spy; all 11 exchange+spy unit tests green
-- [ ] 05-04-PLAN.md — Bridge wiring: 5 BridgeCallbackReceiver.on_* push methods + 4 Socket.IO handlers; 4-terminal smoke test checkpoint
+- [x] 05-01-PLAN.md — Wave 0: test stubs (tests/test_exchange.py with 15 pytest.skip stubs covering all EXCHANGE-xx and SPY-xx requirements)
+- [x] 05-02-PLAN.md — Data layer: ExchangeRecord dataclass + 4 new TurnState fields; _compute_next() SPY_PHASE skip (D-06); spy_targets in PHASE_CHANGED broadcast
+- [x] 05-03-PLAN.md — GameServer RPC methods: request_exchange, respond_exchange, submit_exchange_hint, attempt_spy; all 11 exchange+spy unit tests green
+- [x] 05-04-PLAN.md — Bridge wiring: 5 BridgeCallbackReceiver.on_* push methods + 4 Socket.IO handlers; 4-terminal smoke test checkpoint
 
 ### Phase 6: Synonym Arbitration
 **Goal**: Guess arbitration accepts Portuguese synonyms and near-matches via `wn` + own-pt, with exact-match as permanent fallback, and the image word set is validated against WordNet at server startup
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Player Session + Lobby | 2/2 | Complete    | 2026-05-13 |
 | 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
-| 5. Exchange + Spy Mechanics | 0/4 | Not started | - |
+| 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
 | 6. Synonym Arbitration | 0/TBD | Not started | - |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
