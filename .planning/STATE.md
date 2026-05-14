@@ -87,6 +87,12 @@ None yet.
 - [Phase 6 research flag]: Portuguese WordNet coverage for the specific image word set is unvalidated. Build a startup validation script before implementing arbitration. If >20% of game words return zero synsets, swap words — not library.
 - [Demo risk]: Name Server UDP broadcast may be blocked by firewall/VPN on demo day. Decide at Phase 1: use `--host 127.0.0.1` + `locate_ns(host="127.0.0.1")` or hardcode direct URI `PYRO:game.server@localhost:9091`.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260514-iib | criar infraestrutura de demo em docker compose para o projeto Pyro5/Flask-SocketIO | 2026-05-14 | 7071be4 | [260514-iib-criar-infraestrutura-de-demo-em-docker-c](./quick/260514-iib-criar-infraestrutura-de-demo-em-docker-c/) |
+
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
