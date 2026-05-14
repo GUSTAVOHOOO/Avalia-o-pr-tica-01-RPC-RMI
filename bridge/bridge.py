@@ -167,6 +167,74 @@ class BridgeCallbackReceiver:
         except Exception as exc:
             print(f"[BRIDGE] ERROR in on_object_assigned: {exc}", flush=True)
 
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_exchange_requested(self, data: dict):
+        """Private notification to exchange target player."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("exchange_requested", data, to=sid)
+            print(f"[BRIDGE] exchange_requested -> sid={sid} player={target_player_id}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_exchange_requested: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_exchange_completed(self, data: dict):
+        """Public broadcast when both players complete a private hint exchange."""
+        try:
+            socketio.emit("exchange_completed", data, to=data["room_code"])
+            print(f"[BRIDGE] exchange_completed emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_exchange_completed: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_exchange_hints(self, data: dict):
+        """Private hint delivery to one exchange participant."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("exchange_hints", data, to=sid)
+            print(f"[BRIDGE] exchange_hints -> sid={sid} player={target_player_id}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_exchange_hints: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_spy_discovered(self, data: dict):
+        """Public broadcast when a spy is discovered during SPY_PHASE."""
+        try:
+            socketio.emit("spy_discovered", data, to=data["room_code"])
+            print(f"[BRIDGE] spy_discovered emitted spy={data.get('spy_name')} to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_spy_discovered: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_spy_success(self, data: dict):
+        """Private spy success delivery — hints sent only to spy, no public event."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("spy_success", data, to=sid)
+            print(f"[BRIDGE] spy_success -> sid={sid} spy={target_player_id}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_spy_success: {exc}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Callback daemon startup — binds receiver to a loopback Pyro5 daemon
