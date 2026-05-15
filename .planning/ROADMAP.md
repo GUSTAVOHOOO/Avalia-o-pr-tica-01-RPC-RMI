@@ -156,7 +156,7 @@ Plans:
 **Wave 1**
 
 - [x] 06-01-PLAN.md — Wave 0: manifest.json Portuguese update, WU_PALMER_THRESHOLD in config.py, nltk==3.9.4 in requirements.txt, test stubs
-- [ ] 06-02-PLAN.md — server/arbitration.py (arbitrate + ensure_nltk_corpora), validate_manifest.py, all 8 tests green
+- [x] 06-02-PLAN.md — server/arbitration.py (arbitrate + ensure_nltk_corpora), validate_manifest.py, all 8 tests green
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -208,6 +208,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
-| 6. Synonym Arbitration | 1/3 | In Progress|  |
+| 6. Synonym Arbitration | 2/3 | In Progress|  |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
