@@ -623,22 +623,25 @@ def test_matched_word_is_target_not_guess():
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Manifest language resolution (BLOCKING)**
    - What we know: manifest.json has English words; CONTEXT.md says Portuguese; arbitration works either way (verified).
    - What's unclear: Does the planner want to update manifest to Portuguese (Option A) or adapt arbitration to handle English targets (Option B)?
    - Recommendation: Option A (update manifest to Portuguese words). This aligns with D-02 "Portuguese only" intent and is a simple manifest.json update. The Portuguese-to-English image filename mapping is unchanged (`maçã → apple.jpg`).
+   - **RESOLVED: Option A chosen in Plan 06-01 Task 1 — manifest.json values updated to Portuguese words (maçã, bicicleta, cadeira, etc.), image filenames (keys) unchanged.**
 
 2. **validate_manifest exit code for CI**
    - What we know: CONTEXT.md doesn't specify; script should produce human-readable report.
    - What's unclear: Should the script exit non-zero when exclusions exist (CI-friendly) or always exit 0?
    - Recommendation: Exit non-zero on any exclusion (validates manifest integrity); log warnings regardless.
+   - **RESOLVED: Plan 06-02 Task 2 uses `sys.exit(1)` when any word is excluded — CI-friendly.**
 
 3. **violão vs guitarra coverage**
    - What we know: `violão` (Portuguese for guitar in Brazilian usage) → 1 PT synset `guitar.n.01`; `guitarra` → includes `electric_guitar.n.01` + `guitar.n.01`.
    - What's unclear: Which Portuguese word is most natural for the game context?
    - Recommendation: Use `violão` in manifest (more common Brazilian Portuguese term for acoustic guitar). Either works with the arbitration.
+   - **RESOLVED: Plan 06-01 Task 1 uses `violão` in the Portuguese manifest mapping.**
 
 ---
 
