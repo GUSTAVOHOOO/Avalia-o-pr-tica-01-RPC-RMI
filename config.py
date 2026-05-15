@@ -37,3 +37,7 @@ PHASE_DURATIONS = {
     "SCORING_PHASE": 15,
     "TURN_END":       5,
 }
+
+# Wu-Palmer similarity threshold for synonym arbitration (D-01).
+# 0.7 accepts near-synonyms (e.g., bicicleta ~ bike = ~0.9); tune here, never in arbitration.py.
+WU_PALMER_THRESHOLD = 0.7

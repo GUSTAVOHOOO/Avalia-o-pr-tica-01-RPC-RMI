@@ -1,14 +1,14 @@
 {
-  "apple.jpg": "apple",
-  "bicycle.jpg": "bicycle",
-  "chair.jpg": "chair",
-  "clock.jpg": "clock",
-  "guitar.jpg": "guitar",
-  "hat.jpg": "hat",
+  "apple.jpg": "maçã",
+  "bicycle.jpg": "bicicleta",
+  "chair.jpg": "cadeira",
+  "clock.jpg": "relógio",
+  "guitar.jpg": "violão",
+  "hat.jpg": "chapéu",
   "laptop.jpg": "laptop",
-  "umbrella.jpg": "umbrella",
-  "book.jpg": "book",
-  "cup.jpg": "cup",
-  "shoe.jpg": "shoe",
-  "tree.jpg": "tree"
+  "umbrella.jpg": "guarda-chuva",
+  "book.jpg": "livro",
+  "cup.jpg": "xícara",
+  "shoe.jpg": "sapato",
+  "tree.jpg": "árvore"
 }
