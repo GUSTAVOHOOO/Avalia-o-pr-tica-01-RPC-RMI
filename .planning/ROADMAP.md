@@ -176,7 +176,13 @@ Plans:
   4. After the last turn, all players see a results screen with a podium (top 3) and a per-turn score table; a 30-second play-again vote completes correctly (majority → new round with new images; no majority or majority-no → game ends)
   5. Chat messages sent via `send_chat()` are broadcast to all players via `on_chat_message`; the chat input is in a visually distinct panel, separate from all game action inputs, with distinct labels and submit buttons
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Wave 0: test stubs for all Phase 7 behaviors (16 pytest.skip stubs across 4 test files)
+- [ ] 07-02-PLAN.md — Server backbone: EventBroadcaster failure tracking, reconnect_player, send_chat, VoteRecord, vote methods, turn_score_history; all tests green
+- [ ] 07-03-PLAN.md — Bridge + GameScreen: grace-period disconnect, reconnect_game handler, 5 new callback methods, GameScreen reconnect-on-mount + navigate to /postgame
+- [ ] 07-04-PLAN.md — PostGame screen, ChatPanel component, /postgame route: podium, vote UI, chat integration end-to-end
 **UI hint**: yes
 
 ### Phase 8: UI Polish + Technical Report
