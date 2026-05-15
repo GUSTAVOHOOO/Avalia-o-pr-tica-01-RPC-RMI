@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-synonym-arbitration
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md
 started: 2026-05-15T17:30:00Z
@@ -57,7 +57,12 @@ blocked: 0
   reason: "User reported: testei 'copo' para xícara e deu como errado | testei 'boina' para chapéu e também deu como errado"
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "_assign_images_for_turn() está wired apenas em on_round_start; a partir do turno 2, ROUND_START é pulado (D-06) então _assign_images_for_turn() nunca é chamado; _consume_image_assignments() retorna {} no HINT_PHASE do turno 2+; TurnState.image_assignments = {} → expected = '' para qualquer target_player_id → arbitrate(guess, '', threshold) sempre retorna False; o arbitrate() em si está correto — o bug está no ciclo de assignamento de turnos"
+  artifacts:
+    - path: "server/game_server.py"
+      issue: "on_round_start callback (linha 461) é a única origem de _assign_images_for_turn(); não é chamado nos turnos 2+"
+    - path: "server/turn_machine.py"
+      issue: "_compute_next() retorna 'HINT_PHASE' direto de TURN_END sem passar por ROUND_START (linha 237)"
+  missing:
+    - "Chamar _assign_images_for_turn() também no início de cada HINT_PHASE (turnos 2+) — mover o assign para on_hint_phase_start ou adicionar um segundo hook"
+  debug_session: ".planning/debug/synonym-rejection-live-game.md"
