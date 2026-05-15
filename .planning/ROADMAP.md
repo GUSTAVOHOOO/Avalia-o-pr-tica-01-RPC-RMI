@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Phase Machine + Timer** - Full HINT→GUESS→EXCHANGE→SPY→SCORING cycle with auto-timeout transitions (completed 2026-05-14)
 - [x] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated (completed 2026-05-14)
 - [x] **Phase 5: Exchange + Spy Mechanics** - Private hint exchanges and espionage with public discovery notifications (completed 2026-05-14)
-- [ ] **Phase 6: Synonym Arbitration** - Portuguese WordNet synonym matching replaces exact-match-only guessing
+- [x] **Phase 6: Synonym Arbitration** - Portuguese WordNet synonym matching replaces exact-match-only guessing (completed 2026-05-15)
 - [ ] **Phase 7: Reconnection + End-of-Game** - State restoration on reconnect, post-game podium, play-again vote, chat
 - [ ] **Phase 8: UI Polish + Technical Report** - Polished web UI across all screens and complete academic report
 
@@ -160,7 +160,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 06-03-PLAN.md — game_server.py wiring: submit_guess() arbitration call, GUESS_RESULT enriched, __init__() startup validation
+- [x] 06-03-PLAN.md — game_server.py wiring: submit_guess() arbitration call, GUESS_RESULT enriched, __init__() startup validation
 
 ### Phase 7: Reconnection + End-of-Game
 
@@ -208,6 +208,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
-| 6. Synonym Arbitration | 2/3 | In Progress|  |
+| 6. Synonym Arbitration | 3/3 | Complete   | 2026-05-15 |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
