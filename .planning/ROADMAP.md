@@ -124,7 +124,12 @@ Plans:
   1. At server startup a validation script runs against the full image word list; any word with zero synsets in `wn` + own-pt is logged and excluded from distribution, ensuring no silent arbitration failure at runtime
   2. A guess that is a WordNet synonym or meets the Wu-Palmer threshold for the target word returns `GUESS_RESULT` with `is_correct: true` and `matched_word` populated; a clearly wrong guess returns `is_correct: false`
   3. When `wn` returns `None` for either word, the system falls back to exact-match comparison and does not crash or silently accept the guess
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — Wave 0: manifest.json Portuguese update, WU_PALMER_THRESHOLD in config.py, nltk==3.9.4 in requirements.txt, test stubs
+- [ ] 06-02-PLAN.md — server/arbitration.py (arbitrate + ensure_nltk_corpora), validate_manifest.py, all 8 tests green
+- [ ] 06-03-PLAN.md — game_server.py wiring: submit_guess() arbitration call, GUESS_RESULT enriched, __init__() startup validation
 
 ### Phase 7: Reconnection + End-of-Game
 **Goal**: A player who reloads the page can restore their session using a stored UUID; post-game shows a final podium with per-turn scores; a play-again vote either restarts or ends the game; chat works throughout the session
@@ -166,6 +171,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Phase Machine + Timer | 3/3 | Complete | 2026-05-14 |
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
-| 6. Synonym Arbitration | 0/TBD | Not started | - |
+| 6. Synonym Arbitration | 0/3 | Not started | - |
 | 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
