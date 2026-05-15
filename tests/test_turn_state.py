@@ -41,8 +41,8 @@ def _server_with_turn_state(phase="HINT_PHASE"):
         turn_number=1,
         player_ids=player_ids,
         image_assignments={
-            host["player_id"]: "apple",
-            join["player_id"]: "bicycle",
+            host["player_id"]: "maçã",
+            join["player_id"]: "bicicleta",
         },
     )
     return server, session, host["player_id"], join["player_id"]
@@ -114,7 +114,7 @@ def test_submit_guess_correct():
     """GUESS-01: correct case-insensitive guess records the guesser."""
     server, session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    result = server.submit_guess(player_id, other_id, "Bicycle")
+    result = server.submit_guess(player_id, other_id, "Bicicleta")
 
     assert result == {"ok": True, "is_correct": True}, f"correct guess should be accepted, got {result}"
     assert player_id in session.turn_machine.current_turn_state.correct_guesses, (
@@ -138,7 +138,7 @@ def test_guess_result_broadcast():
     """GUESS-04: GUESS_RESULT includes is_correct and guesser_id."""
     server, _session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server.submit_guess(player_id, other_id, "bicycle")
+    server.submit_guess(player_id, other_id, "bicicleta")
     event = server.broadcaster.events[-1]["data"]
 
     assert event["guesser_id"] == player_id and isinstance(event["is_correct"], bool), (
@@ -150,8 +150,8 @@ def test_guess_one_per_turn():
     """GUESS-05: a second submit_guess() call returns already_guessed."""
     server, _session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server.submit_guess(player_id, other_id, "bicycle")
-    result = server.submit_guess(player_id, other_id, "chair")
+    server.submit_guess(player_id, other_id, "bicicleta")
+    result = server.submit_guess(player_id, other_id, "cadeira")
 
     assert result == {"error": "already_guessed"}, (
         f"second guess should be rejected, got {result}"
@@ -162,7 +162,7 @@ def test_guess_no_self_target():
     """GUESS-05: self-target guesses return cannot_guess_own_object."""
     server, _session, player_id, _other_id = _server_with_turn_state("GUESS_PHASE")
 
-    result = server.submit_guess(player_id, player_id, "apple")
+    result = server.submit_guess(player_id, player_id, "maçã")
 
     assert result == {"error": "cannot_guess_own_object"}, (
         f"self-target guess should be rejected, got {result}"
@@ -206,7 +206,7 @@ def test_get_player_view_returns_current_object_assignment():
 
     assert result["object_assignment"] == {
         "image_url": "/static/images/apple.jpg",
-        "object_name": "apple",
+        "object_name": "maçã",
     }, f"player view should include current private assignment, got {result}"
 
 
