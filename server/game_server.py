@@ -482,14 +482,18 @@ class GameServer:
             target_session.status = "IN_PROGRESS"
 
             room_code_for_cb = target_session.room_code  # capture for closure
+
+            def _hint_phase_cb():
+                self._assign_images_for_turn(room_code_for_cb)
+                return self._consume_image_assignments(room_code_for_cb)
+
             target_session.turn_machine = TurnMachine(
                 room_code=target_session.room_code,
                 max_turns=target_session.max_turns,
                 broadcaster=self.broadcaster,
                 player_ids=[p.player_id for p in target_session.players],
                 on_game_ended=lambda: self._set_session_ended(room_code_for_cb),
-                on_round_start=lambda: self._assign_images_for_turn(room_code_for_cb),
-                on_hint_phase_start=lambda: self._consume_image_assignments(room_code_for_cb),
+                on_hint_phase_start=_hint_phase_cb,
                 on_scoring_phase=lambda ts: self._accumulate_scores(room_code_for_cb, ts),
             )
 
