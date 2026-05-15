@@ -41,7 +41,7 @@
 
 - [x] **GUESS-01**: Durante GUESS_PHASE jogador pode enviar palpite sobre objeto de outro jogador via `submit_guess(player_id, target_player, guess)`
 - [x] **GUESS-02**: Jogador pode passar a vez via `skip_guess(player_id)`
-- [ ] **GUESS-03**: Arbitragem verifica palpite por: (a) igualdade exata, (b) similaridade Wu-Palmer via NLTK `wn` + own-pt com threshold configurável, (c) fallback exact-match se WordNet retornar None
+- [x] **GUESS-03**: Arbitragem verifica palpite por: (a) igualdade exata, (b) similaridade Wu-Palmer via NLTK `wn` + own-pt com threshold configurável, (c) fallback exact-match se WordNet retornar None
 - [x] **GUESS-04**: Resultado da arbitragem é broadcast para todos via `GUESS_RESULT` com `is_correct: bool`
 - [x] **GUESS-05**: Cada jogador pode tentar adivinhar apenas um objeto por turno
 
@@ -165,7 +165,7 @@
 | HINT-04 | Phase 4: Core Turn Loop | Complete |
 | GUESS-01 | Phase 4: Core Turn Loop | Complete |
 | GUESS-02 | Phase 4: Core Turn Loop | Complete |
-| GUESS-03 | Phase 6: Synonym Arbitration | Pending |
+| GUESS-03 | Phase 6: Synonym Arbitration | Complete |
 | GUESS-04 | Phase 4: Core Turn Loop | Complete |
 | GUESS-05 | Phase 4: Core Turn Loop | Complete |
 | EXCHANGE-01 | Phase 5: Exchange + Spy Mechanics | Complete |
