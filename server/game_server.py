@@ -27,6 +27,7 @@ import config
 from server.event_broadcaster import EventBroadcaster
 from server.turn_machine import TurnMachine, _calculate_score_deltas
 from server.turn_state import ExchangeRecord
+from server.arbitration import arbitrate, ensure_nltk_corpora
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +94,34 @@ class GameServer:
         with open(manifest_path, encoding="utf-8") as manifest_file:
             self._image_manifest: dict = json.load(manifest_file)
         self._used_images_this_game: dict = {}
+        # NLTK corpus guard — downloads wordnet and omw-1.4 if not present (D-04).
+        # Must run before any wn.synsets() call to avoid lazy-load I/O inside the lock.
+        ensure_nltk_corpora()
+        # Warm up corpus to avoid first-call latency during GUESS_PHASE (Pitfall 4).
+        from nltk.corpus import wordnet as wn
+        wn.synsets('teste', lang='por')
+        # Filter manifest to words with Portuguese WordNet coverage (D-03, D-04).
+        self._image_manifest = self._validate_manifest_words()
+
+    def _validate_manifest_words(self) -> dict:
+        """Return filtered manifest excluding words with no WordNet coverage.
+
+        Logs WARNING for each excluded word. Server starts normally regardless (D-03).
+        Must be called after self._image_manifest is loaded and after ensure_nltk_corpora().
+        """
+        import logging
+        from nltk.corpus import wordnet as wn
+        valid = {}
+        for filename, word in self._image_manifest.items():
+            synsets = wn.synsets(word, lang='por')
+            if synsets:
+                valid[filename] = word
+            else:
+                logging.warning(
+                    f"WARNING: '{word}' has no Portuguese synsets in omw-1.4 "
+                    f"— excluded from distribution"
+                )
+        return valid
 
     def ping(self) -> str:
         """Health-check endpoint — returns 'pong'."""
@@ -557,7 +586,9 @@ class GameServer:
 
             guess_clean = str(guess_word).strip()[:50]
             expected = str(turn_state.image_assignments.get(target_player_id, ""))
-            is_correct = guess_clean.lower() == expected.strip().lower()
+            is_correct, matched_word, match_type = arbitrate(
+                guess_clean, expected, config.WU_PALMER_THRESHOLD
+            )
             turn_state.guesses_made[player_id] = target_player_id
             if is_correct:
                 turn_state.correct_guesses.append(player_id)
@@ -566,6 +597,8 @@ class GameServer:
                 "guesser_id": player_id,
                 "target_player_id": target_player_id,
                 "is_correct": is_correct,
+                "matched_word": matched_word,   # D-05: canonical target when correct, None otherwise
+                "match_type": match_type,       # D-05/D-06: 'exact'|'synonym'|'fallback'
             }
 
         self.broadcaster.broadcast("guess_result", broadcast_data)
