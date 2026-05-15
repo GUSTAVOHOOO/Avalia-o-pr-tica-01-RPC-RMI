@@ -40,14 +40,16 @@ Declared values (must be multiples of 4):
 | md | 16px | Panel padding, content gap, page-level element separation |
 | lg | 24px | Section padding, chat panel vertical gap |
 | xl | 32px | Page body padding (game-screen__body), podium card spacing |
-| 2xl | 48px | Major section breaks on PostGame screen |
+| 2xl | 48px | Major section breaks on PostGame screen; podium medal circle diameter |
 | 3xl | 64px | Page-level top/bottom padding on PostGame screen |
 
 Exceptions:
-- Touch targets for all interactive buttons: min-height 44px (carried from existing `.panel-btn-primary`, `.page-input` — matches WCAG 2.5.5)
 - Podium medal circle: 48px diameter (multiple of 4, fits 1st/2nd/3rd numerals)
 
-Source: `frontend/src/pages/GameScreen.css` (8px header padding, 16px panel padding, 32px body padding, 44px min-height buttons)
+**Accessibility Constraints (not spacing tokens):**
+- `min-height: 44px` is applied as a CSS constraint on all interactive button elements (`.panel-btn-primary`, `.page-input`) to satisfy WCAG 2.5.5 (minimum touch target size). This is not a spacing token and is not part of the 4-point scale — it is a browser-rendering floor that overrides layout spacing without affecting the token system.
+
+Source: `frontend/src/pages/GameScreen.css` (8px header padding, 16px panel padding, 32px body padding)
 
 ---
 
@@ -65,6 +67,7 @@ Notes:
 - 20px heading carried from `.page-title` in `pages.css`
 - 28px display is new — reserved for the podium top-3 rank numerals and the 30s vote countdown timer
 - Only two weights: regular (400) and semibold (600), matching `.phase-panel__title` and `.panel-btn-primary`
+- `.chat-panel__message-time` uses 14px (label size) with `text-muted` color (#6b7280) for visual distinction — no 5th font size introduced
 
 Source: `frontend/src/pages/GameScreen.css`, `frontend/src/pages/pages.css`
 
@@ -82,7 +85,7 @@ Source: `frontend/src/pages/GameScreen.css`, `frontend/src/pages/pages.css`
 | Warning | #eab308 | Scoring phase panel left-border accent (already established), vote timer bar at <10s |
 | Border / muted | #2d3148 | Panel borders, input borders, score-row dividers, chat message separators |
 | Text primary | #f1f5f9 | All primary content text |
-| Text muted | #6b7280 | Labels, helper text, turn indicator, empty states |
+| Text muted | #6b7280 | Labels, helper text, turn indicator, empty states, chat message timestamps |
 
 Accent reserved for:
 - Primary CTA buttons only (`.panel-btn-primary`, `.page-submit-btn`, chat submit button)
@@ -157,6 +160,8 @@ Note: Label "Mensagem de chat" is required by D-04 to be explicit and distinct f
 
 ## Component Inventory
 
+**Primary focal point:** The 1st-place podium card (success border `#22c55e`, elevated padding 32px vs. 16px, 28px semibold rank numeral) and the 30s vote countdown (28px semibold with three-state color progression) are the primary visual anchors of the PostGame screen. All other components use secondary bg cards at standard padding.
+
 New components required for this phase, with CSS class names following existing BEM-like convention:
 
 ### ChatPanel (new — CHAT-03 / CHAT-04)
@@ -168,7 +173,7 @@ New components required for this phase, with CSS class names following existing 
 .chat-panel__message          — single message row (name + text + timestamp)
 .chat-panel__message-name     — 14px semibold, text-primary
 .chat-panel__message-text     — 14px regular, text-primary
-.chat-panel__message-time     — 12px muted, right-aligned
+.chat-panel__message-time     — 14px regular, text-muted (#6b7280), right-aligned
 .chat-panel__field            — input + button row
 .chat-panel__input            — uses .panel-input base + distinct border #4b5563
 .chat-panel__submit           — uses .panel-btn-primary base, labeled "Enviar mensagem"
@@ -184,7 +189,7 @@ New components required for this phase, with CSS class names following existing 
 .postgame__podium-rank        — 28px semibold rank numeral (1 / 2 / 3)
 .postgame__podium-name        — 16px regular player name
 .postgame__podium-score       — 14px muted total score
-.postgame__podium-card--first — success (#22c55e) top border accent, elevated padding
+.postgame__podium-card--first — success (#22c55e) top border accent, elevated padding (32px vs 16px)
 .postgame__table              — per-turn score table, secondary bg, full width
 .postgame__table-cell         — 14px, right-aligned score values
 .postgame__table-cell--total  — 14px semibold, accent color
