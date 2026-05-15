@@ -1,7 +1,8 @@
 ---
 phase: 7
 slug: reconnection-end-of-game
-status: draft
+status: approved
+reviewed_at: 2026-05-15
 shadcn_initialized: false
 preset: none
 created: 2026-05-15
@@ -17,7 +18,7 @@ created: 2026-05-15
 
 | Property | Value |
 |----------|-------|
-| Tool | none — Vanilla HTML/CSS/JS with Tailwind CDN |
+| Tool | none — React + TypeScript with Tailwind CDN (Vite) |
 | Preset | not applicable |
 | Component library | none (custom CSS classes, BEM-like naming matching existing pages) |
 | Icon library | none (text labels and Unicode symbols used in existing components) |
