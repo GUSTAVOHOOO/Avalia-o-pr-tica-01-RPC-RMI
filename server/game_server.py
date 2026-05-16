@@ -45,6 +45,19 @@ class PlayerInfo:
 
 
 @dataclasses.dataclass
+class VoteRecord:
+    """Tracks play-again vote state during post-game voting (POSTGAME-02 through 04).
+
+    generation is incremented on each new vote and used to detect stale timer callbacks
+    (same pattern as TurnMachine._generation — TURN-04).
+    """
+
+    votes: dict = dataclasses.field(default_factory=dict)   # player_id -> bool
+    generation: int = 0
+    timer: object = dataclasses.field(default=None, repr=False)
+
+
+@dataclasses.dataclass
 class GameSession:
     """Authoritative game session state stored on the server.
 
@@ -59,6 +72,10 @@ class GameSession:
     turn_machine: object = dataclasses.field(default=None, repr=False)  # TurnMachine instance, set by start_game()
     accumulated_scores: dict = dataclasses.field(default_factory=dict)
     current_image_assignments: dict = dataclasses.field(default_factory=dict)
+    turn_score_history: list = dataclasses.field(default_factory=list)
+    # Each entry: {"turn": int, "scores": {player_id: delta}} — appended in _accumulate_scores()
+    vote_record: object = dataclasses.field(default=None, repr=False)
+    # Set to VoteRecord when _start_vote() is called; cleared on restart/end (POSTGAME-02)
 
     @property
     def player_count(self) -> int:
@@ -160,7 +177,9 @@ class GameServer:
         Args:
             message: Arbitrary string payload included in the test event data.
         """
-        self.broadcaster.broadcast("test_event", {"message": message, "source": "broadcast_test"})
+        failed = self.broadcaster.broadcast("test_event", {"message": message, "source": "broadcast_test"})
+        if failed:
+            self._remove_failed_players(failed)
 
     # -----------------------------------------------------------------------
     # Session management methods (Phase 2)
@@ -286,7 +305,9 @@ class GameServer:
             }
 
         # Broadcast OUTSIDE the lock — EventBroadcaster.broadcast() does network I/O
-        self.broadcaster.broadcast("player_joined", broadcast_data)
+        failed = self.broadcaster.broadcast("player_joined", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
         return {"player_id": player_id, "room_code": room_code, "is_host": False}
 
     def get_session(self, room_code: str) -> dict:
@@ -437,8 +458,13 @@ class GameServer:
                     "turn_delta": deltas.get(player_id, 0),
                     "total": total,
                 })
+            # Append per-turn score snapshot for post-game history (POSTGAME-01)
+            session.turn_score_history.append({
+                "turn": turn_state.turn_number,
+                "scores": dict(deltas),
+            })
 
-        self.broadcaster.broadcast(
+        failed = self.broadcaster.broadcast(
             "score_updated",
             {
                 "room_code": room_code,
@@ -446,6 +472,8 @@ class GameServer:
                 "scores": scores_payload,
             },
         )
+        if failed:
+            self._remove_failed_players(failed)
 
     def start_game(self, player_id: str) -> bool:
         """Start the game session if caller is host and ≥2 players are present.
@@ -492,7 +520,7 @@ class GameServer:
                 max_turns=target_session.max_turns,
                 broadcaster=self.broadcaster,
                 player_ids=[p.player_id for p in target_session.players],
-                on_game_ended=lambda: self._set_session_ended(room_code_for_cb),
+                on_game_ended=lambda: self._start_vote(room_code_for_cb),
                 on_hint_phase_start=_hint_phase_cb,
                 on_scoring_phase=lambda ts: self._accumulate_scores(room_code_for_cb, ts),
             )
@@ -503,7 +531,9 @@ class GameServer:
             }
 
         # Broadcast OUTSIDE the lock — then start TurnMachine AFTER game_started (T-03-07)
-        self.broadcaster.broadcast("game_started", broadcast_data)
+        failed = self.broadcaster.broadcast("game_started", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
         target_session.turn_machine.start()  # fires ROUND_START AFTER game_started broadcast
         return True
 
@@ -562,7 +592,9 @@ class GameServer:
             }
             should_advance = turn_state.all_hints_submitted()
 
-        self.broadcaster.broadcast("hint_received", broadcast_data)
+        failed = self.broadcaster.broadcast("hint_received", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
         if should_advance:
             turn_machine.advance_to_guess_phase()
         return {"ok": True}
@@ -605,7 +637,9 @@ class GameServer:
                 "match_type": match_type,       # D-05/D-06: 'exact'|'synonym'|'fallback'
             }
 
-        self.broadcaster.broadcast("guess_result", broadcast_data)
+        failed = self.broadcaster.broadcast("guess_result", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
         return {"ok": True, "is_correct": is_correct}
 
     def skip_guess(self, player_id: str) -> dict:
@@ -802,7 +836,9 @@ class GameServer:
 
         # All broadcasts OUTSIDE the lock (Pitfall 1)
         if broadcast_data:
-            self.broadcaster.broadcast("exchange_completed", broadcast_data)
+            failed = self.broadcaster.broadcast("exchange_completed", broadcast_data)
+            if failed:
+                self._remove_failed_players(failed)
         for target_id, event_type, data in private_deliveries:
             self.broadcaster.send_to_player(target_id, event_type, data)
         return {"ok": True}
@@ -879,7 +915,9 @@ class GameServer:
 
         # Broadcast OUTSIDE the lock (Pitfall 1)
         if discovered_data:
-            self.broadcaster.broadcast("spy_discovered", discovered_data)
+            failed = self.broadcaster.broadcast("spy_discovered", discovered_data)
+            if failed:
+                self._remove_failed_players(failed)
             return {"ok": True, "discovered": True}
         else:
             self.broadcaster.send_to_player(player_id, "spy_success", success_data)
@@ -947,9 +985,317 @@ class GameServer:
 
         # Broadcast HOST_CHANGED OUTSIDE the lock
         if host_changed and broadcast_data:
-            self.broadcaster.broadcast("host_changed", broadcast_data)
+            failed = self.broadcaster.broadcast("host_changed", broadcast_data)
+            if failed:
+                self._remove_failed_players(failed)
 
         return True
+
+
+    # -----------------------------------------------------------------------
+    # Phase 7 methods: failure removal, reconnect, chat, post-game vote
+    # -----------------------------------------------------------------------
+
+    def _remove_failed_players(self, failed_player_ids: list) -> None:
+        """Remove players whose callbacks have permanently failed (D-08 / INFRA-07).
+
+        Called AFTER broadcaster.broadcast() returns a non-empty failed list —
+        always called outside any GameServer lock (broadcast-outside-lock pattern).
+
+        For each player: under self.lock removes from _player_to_room, removes from
+        session.players, unregisters callback, snapshots player_name + room_code.
+        AFTER lock exits: broadcasts "player_left" with {player_id, player_name, room_code}.
+        """
+        for player_id in failed_player_ids:
+            player_name_snap = None
+            room_code_snap = None
+
+            with self.lock:
+                room_code = self._player_to_room.pop(player_id, None)
+                if room_code is None:
+                    continue
+                session = self.sessions.get(room_code)
+                if session is None:
+                    continue
+                for p in session.players:
+                    if p.player_id == player_id:
+                        player_name_snap = p.player_name
+                        break
+                session.players = [p for p in session.players if p.player_id != player_id]
+                self.broadcaster.unregister_callback(player_id)
+                room_code_snap = room_code
+
+            if player_name_snap and room_code_snap:
+                failed = self.broadcaster.broadcast("player_left", {
+                    "player_id": player_id,
+                    "player_name": player_name_snap,
+                    "room_code": room_code_snap,
+                })
+                # Nested failures from the player_left broadcast are dropped silently
+                # to avoid infinite recursion; those players will be removed on the
+                # next regular broadcast cycle.
+
+    @Pyro5.api.expose
+    def reconnect_player(self, player_id: str, room_code: str, callback_uri: str) -> dict:
+        """Re-register callback URI for a player already in the session (INFRA-08 / D-02).
+
+        Validates that player_id is currently mapped to room_code before
+        re-registering the callback so that unknown UUIDs cannot inject a
+        callback URI (T-07-02-01).
+
+        Args:
+            player_id: UUID of the reconnecting player.
+            room_code: Room they claim to be in.
+            callback_uri: New Pyro5 callback URI for their new bridge session.
+
+        Returns:
+            get_player_view() payload on success ({"phase", "players", ...}).
+            {"error": str} if player_id is not found in room_code.
+        """
+        with self.lock:
+            room = self._player_to_room.get(player_id)
+            if room != room_code:
+                return {"error": "player not in session"}
+            session = self.sessions.get(room_code)
+            if session is None:
+                return {"error": "session not found"}
+            for p in session.players:
+                if p.player_id == player_id:
+                    p.callback_uri = callback_uri
+                    break
+
+        # Register outside the lock — broadcaster has its own lock
+        self.broadcaster.register_callback(player_id, callback_uri)
+        return self.get_player_view(room_code, player_id)
+
+    @Pyro5.api.expose
+    def send_chat(self, player_id: str, message: str) -> dict:
+        """Broadcast a chat message to all players in the room (CHAT-01/02).
+
+        Message is silently truncated to 200 characters (T-07-02-03).
+        Unknown player_id returns {"error": ...} without broadcasting.
+
+        Args:
+            player_id: The player sending the message.
+            message: The chat message text (max 200 chars after truncation).
+
+        Returns:
+            {"ok": True} on success; {"error": str} if player not in session.
+        """
+        import time as _time
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            player_name = None
+            if room_code:
+                session = self.sessions.get(room_code)
+                if session:
+                    for p in session.players:
+                        if p.player_id == player_id:
+                            player_name = p.player_name
+                            break
+
+        if room_code is None or player_name is None:
+            return {"error": "player not in session"}
+
+        failed = self.broadcaster.broadcast("chat_message", {
+            "player_id": player_id,
+            "player_name": player_name,
+            "message": str(message)[:200],
+            "timestamp": _time.time(),
+            "room_code": room_code,
+        })
+        if failed:
+            self._remove_failed_players(failed)
+        return {"ok": True}
+
+    def _start_vote(self, room_code: str) -> None:
+        """Start the 30-second play-again vote after the last turn (POSTGAME-02).
+
+        Creates a VoteRecord with generation=1, schedules a 30s threading.Timer,
+        and broadcasts "vote_started" with {room_code, duration_seconds, player_count}.
+
+        Idempotent: if a vote is already in progress, returns immediately.
+        Must NOT be called while self.lock is held (timer creation is outside lock).
+        """
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None:
+                return
+            if session.vote_record is not None:
+                return  # vote already running — idempotent guard
+            vote = VoteRecord(generation=1)
+            session.vote_record = vote
+            gen_snapshot = vote.generation
+            player_count = len(session.players)
+            broadcast_data = {
+                "room_code": room_code,
+                "duration_seconds": 30,
+                "player_count": player_count,
+            }
+
+        # Schedule timer OUTSIDE the lock — follows TurnMachine pattern
+        def _on_vote_timeout():
+            self._resolve_vote(room_code, gen_snapshot)
+
+        t = threading.Timer(30.0, _on_vote_timeout)
+        t.daemon = True
+
+        # Attach timer to VoteRecord under lock (only if vote is still the same generation)
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session and session.vote_record and session.vote_record.generation == gen_snapshot:
+                session.vote_record.timer = t
+
+        t.start()
+
+        failed = self.broadcaster.broadcast("vote_started", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
+
+    @Pyro5.api.expose
+    def submit_vote(self, player_id: str, continue_game: bool) -> dict:
+        """Record a player's play-again vote and resolve early if all have voted (POSTGAME-03/04).
+
+        Duplicate votes return {"ok": True, "duplicate": True} without changing the
+        tally (T-07-02-02 — vote stuffing guard).
+
+        Args:
+            player_id: The player submitting the vote.
+            continue_game: True to vote for restarting; False to end.
+
+        Returns:
+            {"ok": True} on success; {"ok": True, "duplicate": True} on re-vote;
+            {"error": str} if player not in session or no vote in progress.
+        """
+        resolve_now = False
+        gen_snapshot = None
+        room_code_snap = None
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            if not room_code:
+                return {"error": "player not in session"}
+            session = self.sessions.get(room_code)
+            if session is None or session.vote_record is None:
+                return {"error": "no vote in progress"}
+            vote = session.vote_record
+            if player_id in vote.votes:
+                return {"ok": True, "duplicate": True}
+            vote.votes[player_id] = continue_game
+            total = len(session.players)
+            yes_count = sum(1 for v in vote.votes.values() if v)
+            # Early resolution: all players have voted
+            if len(vote.votes) >= total:
+                resolve_now = True
+                gen_snapshot = vote.generation
+                room_code_snap = room_code
+            broadcast_data = {
+                "room_code": room_code,
+                "yes_count": yes_count,
+                "votes_cast": len(vote.votes),
+                "total": total,
+            }
+
+        failed = self.broadcaster.broadcast("vote_update", broadcast_data)
+        if failed:
+            self._remove_failed_players(failed)
+
+        if resolve_now:
+            self._resolve_vote(room_code_snap, gen_snapshot)
+
+        return {"ok": True}
+
+    def _resolve_vote(self, room_code: str, expected_generation: int) -> None:
+        """Tally vote and either restart or end the game (POSTGAME-03/04).
+
+        Stale-timer guard: if generation != expected_generation, returns immediately.
+        Calls _start_vote() logic path used by threading.Timer after 30s; also called
+        directly by submit_vote() when all players have voted early.
+
+        Args:
+            room_code: The room whose vote is being resolved.
+            expected_generation: The VoteRecord.generation this call was created for.
+        """
+        broadcast_restart = None
+        broadcast_ended = None
+
+        with self.lock:
+            session = self.sessions.get(room_code)
+            if session is None or session.vote_record is None:
+                return
+            vote = session.vote_record
+            if vote.generation != expected_generation:
+                return  # stale timer guard — same pattern as TurnMachine TURN-04
+            if vote.timer is not None:
+                vote.timer.cancel()
+            total = len(session.players)
+            yes_count = sum(1 for v in vote.votes.values() if v)
+            majority = yes_count > total / 2
+            session.vote_record = None  # clear vote state
+
+            if majority:
+                session.status = "IN_PROGRESS"
+                self._used_images_this_game.pop(room_code, None)  # fresh image pool
+                session.accumulated_scores.clear()
+                session.turn_score_history.clear()
+                player_ids = [p.player_id for p in session.players]
+                max_turns = session.max_turns
+                broadcast_restart = {"room_code": room_code}
+            else:
+                session.status = "ENDED"
+                # Build final_scores as sorted list of dicts (POSTGAME-04 spec)
+                final_scores = [
+                    {
+                        "player_id": p.player_id,
+                        "player_name": p.player_name,
+                        "total": session.accumulated_scores.get(p.player_id, 0),
+                    }
+                    for p in session.players
+                ]
+                final_scores.sort(key=lambda x: x["total"], reverse=True)
+                broadcast_ended = {
+                    "room_code": room_code,
+                    "final_scores": final_scores,
+                    "turn_score_history": list(session.turn_score_history),
+                }
+
+        if broadcast_restart:
+            failed = self.broadcaster.broadcast("game_restarting", broadcast_restart)
+            if failed:
+                self._remove_failed_players(failed)
+
+            # Assign new images and rebuild TurnMachine for the new round
+            self._assign_images_for_turn(room_code)
+
+            with self.lock:
+                session = self.sessions.get(room_code)
+                if session:
+                    room_code_for_cb = room_code
+
+                    def _hint_phase_cb():
+                        self._assign_images_for_turn(room_code_for_cb)
+                        return self._consume_image_assignments(room_code_for_cb)
+
+                    session.turn_machine = TurnMachine(
+                        room_code=room_code,
+                        max_turns=session.max_turns,
+                        broadcaster=self.broadcaster,
+                        player_ids=[p.player_id for p in session.players],
+                        on_game_ended=lambda: self._start_vote(room_code_for_cb),
+                        on_hint_phase_start=_hint_phase_cb,
+                        on_scoring_phase=lambda ts: self._accumulate_scores(room_code_for_cb, ts),
+                    )
+                    tm = session.turn_machine
+
+            tm.start()
+
+        elif broadcast_ended:
+            failed = self.broadcaster.broadcast("game_ended", broadcast_ended)
+            if failed:
+                self._remove_failed_players(failed)
+            with self.lock:
+                self.sessions.pop(room_code, None)
 
 
 if __name__ == "__main__":
