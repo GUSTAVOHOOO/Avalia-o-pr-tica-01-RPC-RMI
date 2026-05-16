@@ -1,6 +1,4 @@
-"""Phase 7 test stubs — reconnect_player RPC (INFRA-08).
-
-Wave 0: all stubs skip; Wave 1 plan 07-02 replaces pytest.skip with real assertions.
+"""Phase 7 tests — reconnect_player RPC (INFRA-08).
 
 Uses the same _start_daemon helper pattern as test_session.py:
   - Real in-process Pyro5 daemon started in a background thread
@@ -48,7 +46,33 @@ def test_reconnect_player_returns_player_view():
     Validates that reconnect state delivery reuses get_player_view() without
     introducing a new data structure.
     """
-    pytest.skip("stub — implemented by plan 07-02")
+    server = GameServer()
+    daemon, uri = _start_daemon(server, "test.gs.reconnect.view")
+    try:
+        with Pyro5.api.Proxy(uri) as proxy:
+            # Create a 2-player session and start the game so get_player_view returns phase info
+            result_a = proxy.create_game("Alice", "PYRO:fake@127.0.0.1:9999", 3)
+            player_a_id = result_a["player_id"]
+            room_code = result_a["room_code"]
+
+            proxy.join_game("Bob", "PYRO:fake@127.0.0.1:9999", room_code)
+
+            # Call reconnect_player with the existing player's id
+            reconnect_result = proxy.reconnect_player(
+                player_a_id, room_code, "PYRO:new_cb@127.0.0.1:9998"
+            )
+
+        assert isinstance(reconnect_result, dict), (
+            f"Expected dict, got {type(reconnect_result)}"
+        )
+        assert "error" not in reconnect_result, (
+            f"Unexpected error: {reconnect_result.get('error')}"
+        )
+        assert "players" in reconnect_result, "Missing 'players' key in reconnect result"
+        assert "room_code" in reconnect_result, "Missing 'room_code' key in reconnect result"
+        assert reconnect_result["room_code"] == room_code, "room_code mismatch"
+    finally:
+        daemon.shutdown()
 
 
 def test_reconnect_player_unknown_uuid():
@@ -58,7 +82,27 @@ def test_reconnect_player_unknown_uuid():
     Validates server-side UUID validation: unknown player_id must not be
     re-registered or granted a reconnect state response.
     """
-    pytest.skip("stub — implemented by plan 07-02")
+    server = GameServer()
+    daemon, uri = _start_daemon(server, "test.gs.reconnect.unknown")
+    try:
+        with Pyro5.api.Proxy(uri) as proxy:
+            # Create a session to have at least one room
+            result = proxy.create_game("Alice", "PYRO:fake@127.0.0.1:9999", 3)
+            room_code = result["room_code"]
+
+            # Unknown player_id
+            reconnect_result = proxy.reconnect_player(
+                "unknown-player-id", room_code, "PYRO:fake@127.0.0.1:9999"
+            )
+
+        assert isinstance(reconnect_result, dict), (
+            f"Expected dict, got {type(reconnect_result)}"
+        )
+        assert "error" in reconnect_result, (
+            "Expected 'error' key for unknown player_id, got none"
+        )
+    finally:
+        daemon.shutdown()
 
 
 def test_reconnect_player_updates_callback_uri():
@@ -68,4 +112,23 @@ def test_reconnect_player_updates_callback_uri():
     Validates that the callback URI is re-registered for the reconnecting player
     so future broadcasts reach their new bridge session.
     """
-    pytest.skip("stub — implemented by plan 07-02")
+    server = GameServer()
+    daemon, uri = _start_daemon(server, "test.gs.reconnect.uri")
+    new_callback_uri = "PYRO:new_callback@127.0.0.1:12345"
+    try:
+        with Pyro5.api.Proxy(uri) as proxy:
+            result = proxy.create_game("Alice", "PYRO:old_cb@127.0.0.1:9999", 3)
+            player_id = result["player_id"]
+            room_code = result["room_code"]
+
+            proxy.join_game("Bob", "PYRO:fake@127.0.0.1:9999", room_code)
+
+            proxy.reconnect_player(player_id, room_code, new_callback_uri)
+
+        # Check the broadcaster's callback dict directly on the server object
+        assert server.broadcaster.callbacks.get(player_id) == new_callback_uri, (
+            f"Expected callback URI to be '{new_callback_uri}', "
+            f"got '{server.broadcaster.callbacks.get(player_id)}'"
+        )
+    finally:
+        daemon.shutdown()

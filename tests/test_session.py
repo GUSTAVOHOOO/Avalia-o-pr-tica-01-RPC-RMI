@@ -230,4 +230,62 @@ def test_host_transfer_on_leave():
 
     Validates SESSION-07 host-transfer-on-leave behavior.
     """
-    pytest.skip("stub — implemented by plan 07-02")
+
+    @Pyro5.api.expose
+    class TestCallbackReceiver:
+        """Minimal callback receiver that collects host_changed events."""
+
+        def __init__(self):
+            self.received = []
+            self.event = threading.Event()
+
+        def on_host_changed(self, data):
+            self.received.append(data)
+            self.event.set()
+
+    server = GameServer()
+    server_daemon, server_uri = _start_daemon(server, "test.gs.host_transfer")
+
+    receiver = TestCallbackReceiver()
+    cb_daemon, cb_uri = _start_daemon(receiver, "test.gs.cb.host_transfer")
+
+    try:
+        with Pyro5.api.Proxy(server_uri) as proxy:
+            # Player A creates the game (becomes host)
+            result_a = proxy.create_game("PlayerA", cb_uri, 3)
+            player_a_id = result_a["player_id"]
+            room_code = result_a["room_code"]
+
+            # Player B joins
+            result_b = proxy.join_game("PlayerB", cb_uri, room_code)
+            player_b_id = result_b["player_id"]
+
+            # Player A (host) leaves
+            proxy.leave_game(player_a_id)
+
+        # Wait for HOST_CHANGED broadcast to arrive (up to 5s)
+        delivered = receiver.event.wait(timeout=5)
+        assert delivered, "Timed out waiting for HOST_CHANGED broadcast delivery (>5 s)"
+
+        # Verify session.host_id was updated
+        assert room_code in server.sessions, "Session should still exist after host leaves"
+        session = server.sessions[room_code]
+        assert session.host_id == player_b_id, (
+            f"Expected host_id to be player_b_id ({player_b_id}), got {session.host_id}"
+        )
+
+        # Verify broadcast payload
+        assert len(receiver.received) >= 1, (
+            f"Expected at least 1 HOST_CHANGED event, got {len(receiver.received)}"
+        )
+        payload = receiver.received[0]
+        assert "new_host_id" in payload, "Missing 'new_host_id' in HOST_CHANGED payload"
+        assert "room_code" in payload, "Missing 'room_code' in HOST_CHANGED payload"
+        assert payload["new_host_id"] == player_b_id, (
+            f"Expected new_host_id to be player_b_id ({player_b_id}), got {payload['new_host_id']}"
+        )
+        assert payload["room_code"] == room_code, "room_code mismatch in HOST_CHANGED payload"
+
+    finally:
+        server_daemon.shutdown()
+        cb_daemon.shutdown()
