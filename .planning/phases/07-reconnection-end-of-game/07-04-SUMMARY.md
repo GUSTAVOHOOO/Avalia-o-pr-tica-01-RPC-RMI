@@ -154,3 +154,33 @@ T-07-04-02 accepted disposition: final_scores contains no PII beyond player name
 - Commit f24ee54: feat(07-04): create PostGame screen — FOUND
 - TypeScript compiles: 0 errors
 - Full test suite: 78/78 PASSED
+
+## Post-Checkpoint Bug Fixes (commit 1005669)
+
+Two bugs reported by user during manual smoke test:
+
+### Bug 1 — vote_started event lost on navigation
+
+**Root cause:** `GameScreen.tsx` called `navigate('/postgame/:roomCode')` in response to the `vote_started` socket event. `PostGame.tsx` registered its `socket.on('vote_started', ...)` listener inside a `useEffect` that runs after mount. Since navigation was triggered by the same event, `PostGame` mounted after the event had already fired — the listener never received it, `voteActive` stayed `false`, and the vote UI never appeared.
+
+**Fix:**
+- `GameScreen.tsx`: pass vote data via React Router navigate state: `navigate('/postgame/${roomCode}', { state: { voteActive: true, durationSeconds: data.duration_seconds, playerCount: data.player_count } })`
+- `PostGame.tsx`: add `useLocation()`, read `navState` from `location.state`, initialize `voteActive`/`voteSecondsLeft`/`totalPlayers` from navState so the vote UI shows immediately on mount
+- `PostGame.tsx`: add a mount-time `useEffect` (runs once, `[]` deps) that starts the countdown interval immediately if `navState.voteActive` is true; stores timer in `intervalRef.current` so the reconnect-path `handleVoteStarted` can clear it before starting a new one
+
+### Bug 2 — 3-second redirect countdown too short to read final scores
+
+**Root cause:** The `game_ended` handler started a 3s interval before navigating to `/`. This was not enough time for players to read the podium and score table.
+
+**Fix:** Changed `let count = 3` to `let count = 10` and initial `setRedirectCountdown` value from `3` to `10` in the `game_ended` handler. Also updated initial `useState` for `redirectCountdown` from `3` to `10`.
+
+### Decisions
+
+- `barWidth` calculation (`voteSecondsLeft / 30`) remains correct: `voteSecondsLeft` is initialized from `navState?.durationSeconds ?? 30`, which matches the server's 30s duration.
+- Existing `handleVoteStarted` socket listener kept as fallback for reconnect scenarios where PostGame is loaded directly without navigation state.
+- Mount-time `useEffect` deps array is `[]` (intentional) — `navState` is captured from closure at mount time and is stable.
+
+### Post-fix verification
+
+- `npx tsc --noEmit`: 0 errors
+- `pytest tests/test_postgame.py tests/test_chat.py`: 10/10 PASSED
