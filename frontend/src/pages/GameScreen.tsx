@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router'
+import { useParams, useNavigate } from 'react-router'
 import socket from '../socket'
 import PhaseBadge from '../components/PhaseBadge'
 import CountdownDisplay from '../components/CountdownDisplay'
@@ -59,6 +59,19 @@ interface JoinRoomPayload {
   object_assignment?: ObjectAssignedPayload | null
 }
 
+interface ChatMessage {
+  player_id: string
+  player_name: string
+  message: string
+  timestamp: number
+}
+
+interface VoteStartedPayload {
+  room_code: string
+  duration_seconds: number
+  player_count: number
+}
+
 const passiveStatus: Record<string, string> = {
   ROUND_START: 'Aguardando proxima fase...',
   EXCHANGE_PHASE: 'Aguardando proxima fase...',
@@ -112,6 +125,7 @@ function SecretImagePanel({ assignment }: { assignment: ObjectAssignedPayload | 
 /* ─── GameScreen ──────────────────────────────────────────────────────────── */
 export default function GameScreen() {
   const { roomCode } = useParams<{ roomCode: string }>()
+  const navigate = useNavigate()
   const myPlayerId = localStorage.getItem('player_id') ?? ''
 
   const [currentPhase, setCurrentPhase] = useState<string | null>(null)
@@ -132,6 +146,8 @@ export default function GameScreen() {
   const [guessInput, setGuessInput] = useState('')
   const [guessIsCorrect, setGuessIsCorrect] = useState<boolean | null>(null)
   const [scores, setScores] = useState<ScoreEntry[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [playerLeftMsg, setPlayerLeftMsg] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -170,7 +186,9 @@ export default function GameScreen() {
       }, 1000)
     }
 
-    socket.emit('join_room', { room_code: roomCode, player_id: myPlayerId }, (data: JoinRoomPayload) => {
+    const storedPlayerId = localStorage.getItem('player_id') ?? ''
+
+    const handleReconnectOrJoin = (data: JoinRoomPayload) => {
       if (data?.error) {
         setConnectionError(String(data.error))
         return
@@ -186,7 +204,7 @@ export default function GameScreen() {
         setMyObjectAssignment(data.object_assignment)
       }
       if (data?.status === 'ENDED') {
-        setGameEnded(true)
+        navigate(`/postgame/${roomCode}`)
         return
       }
 
@@ -199,7 +217,13 @@ export default function GameScreen() {
           room_code: roomCode ?? '',
         })
       }
-    })
+    }
+
+    if (storedPlayerId && roomCode) {
+      socket.emit('reconnect_game', { player_id: storedPlayerId, room_code: roomCode }, handleReconnectOrJoin)
+    } else {
+      socket.emit('join_room', { room_code: roomCode, player_id: myPlayerId }, handleReconnectOrJoin)
+    }
 
     const handlePhaseChanged = (data: PhaseChangedPayload) => {
       setConnectionError(null)
@@ -219,7 +243,21 @@ export default function GameScreen() {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
-      setGameEnded(true)
+      navigate(`/postgame/${roomCode}`)
+    }
+    const handlePlayerLeft = (data: { player_id: string; player_name: string }) => {
+      setPlayers((prev) => prev.filter((p) => p.player_id !== data.player_id))
+      setPlayerLeftMsg(`${data.player_name} saiu da partida`)
+      setTimeout(() => setPlayerLeftMsg(null), 4000)
+    }
+    const handleGameRestarting = () => {
+      navigate(`/game/${roomCode}`)
+    }
+    const handleChatMessage = (data: ChatMessage) => {
+      setChatMessages((prev) => [...prev, data])
+    }
+    const handleVoteStarted = (_data: VoteStartedPayload) => {
+      navigate(`/postgame/${roomCode}`)
     }
 
     socket.on('phase_changed', handlePhaseChanged)
@@ -228,6 +266,10 @@ export default function GameScreen() {
     socket.on('guess_result', handleGuessResult)
     socket.on('score_updated', handleScoreUpdated)
     socket.on('game_ended', handleGameEnded)
+    socket.on('player_left', handlePlayerLeft)
+    socket.on('game_restarting', handleGameRestarting)
+    socket.on('chat_message', handleChatMessage)
+    socket.on('vote_started', handleVoteStarted)
 
     return () => {
       if (intervalRef.current) {
@@ -240,8 +282,12 @@ export default function GameScreen() {
       socket.off('guess_result', handleGuessResult)
       socket.off('score_updated', handleScoreUpdated)
       socket.off('game_ended', handleGameEnded)
+      socket.off('player_left', handlePlayerLeft)
+      socket.off('game_restarting', handleGameRestarting)
+      socket.off('chat_message', handleChatMessage)
+      socket.off('vote_started', handleVoteStarted)
     }
-  }, [roomCode, myPlayerId])
+  }, [roomCode, myPlayerId, navigate])
 
   const otherPlayers = players.filter((p) => p.player_id !== myPlayerId)
   const canSubmitHint = hintInput.trim() !== '' && !myHintSubmitted
@@ -446,6 +492,11 @@ export default function GameScreen() {
   /* ─── Main render ───────────────────────────────────────────────────────── */
   return (
     <div className="game-screen">
+      {playerLeftMsg && (
+        <div className="player-left-toast">
+          <span className="player-left-toast__text">{playerLeftMsg}</span>
+        </div>
+      )}
       <div className="game-screen__header">
         <div>{currentPhase !== null && <PhaseBadge phase={currentPhase} />}</div>
 

@@ -284,3 +284,23 @@
   margin: 0;
   text-align: center;
 }
+
+/* ─── Player-left toast ───────────────────────────────────────────────────── */
+.player-left-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  background-color: #1a1d27;
+  border-left: 3px solid #ef4444;
+  padding: 12px 16px;
+  max-width: 300px;
+  border-radius: 4px;
+}
+
+.player-left-toast__text {
+  font-size: 14px;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+
