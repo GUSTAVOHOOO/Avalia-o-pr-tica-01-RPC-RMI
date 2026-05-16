@@ -10,11 +10,13 @@ Test coverage:
   test_join_rejected_if_started — SESSION-04: join_game() returns {"error": "jogo em andamento"} when status != WAITING
   test_player_joined_broadcast  — SESSION-05: join_game() triggers PLAYER_JOINED broadcast delivered to registered callback
   test_start_game_validation    — SESSION-06: start_game() returns True only for host with ≥2 players; False otherwise
+  test_host_transfer_on_leave   — SESSION-07: leave_game() transfers host to next player and broadcasts HOST_CHANGED
 """
 
 import re
 import threading
 
+import pytest
 import Pyro5.api
 import Pyro5.errors
 
@@ -214,3 +216,18 @@ def test_start_game_validation():
             )
     finally:
         daemon.shutdown()
+
+
+def test_host_transfer_on_leave():
+    """SESSION-07: leave_game() transfers host to next player and broadcasts HOST_CHANGED.
+
+    Setup: 2-player session (Player A as host, Player B as non-host).
+    Action: Player A calls leave_game().
+    Assertions:
+      - session.host_id == player_B_id (host transferred to remaining player)
+      - A HOST_CHANGED broadcast was received by a registered callback with
+        keys {new_host_id, room_code}
+
+    Validates SESSION-07 host-transfer-on-leave behavior.
+    """
+    pytest.skip("stub — implemented by plan 07-02")
