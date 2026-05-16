@@ -239,7 +239,11 @@ export default function GameScreen() {
       if (data.guesser_id === myPlayerId) setGuessIsCorrect(data.is_correct)
     }
     const handleScoreUpdated = (data: ScoreUpdatedPayload) => setScores(data.scores)
-    const handleGameEnded = (_data: object) => {
+    const handleGameEnded = (data: { final_scores?: unknown[] }) => {
+      // TurnMachine broadcasts game_ended (no final_scores) before _start_vote().
+      // Ignore that intermediate broadcast — vote_started handles navigation.
+      // Only navigate here if this is _resolve_vote's broadcast (has final_scores).
+      if (!data?.final_scores) return
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
