@@ -235,6 +235,59 @@ class BridgeCallbackReceiver:
         except Exception as exc:
             print(f"[BRIDGE] ERROR in on_spy_success: {exc}", flush=True)
 
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_chat_message(self, data: dict):
+        """Broadcast a chat message to all players in the room (CHAT-01)."""
+        try:
+            socketio.emit("chat_message", data, to=data["room_code"])
+            print(f"[BRIDGE] chat_message emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_chat_message: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_player_left(self, data: dict):
+        """Notify all players that a player has permanently left the session."""
+        try:
+            socketio.emit("player_left", data, to=data["room_code"])
+            print(
+                f"[BRIDGE] player_left emitted player={data.get('player_name')} "
+                f"room={data['room_code']}", flush=True
+            )
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_player_left: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_vote_started(self, data: dict):
+        """Notify all players that the play-again vote has started (POSTGAME-02)."""
+        try:
+            socketio.emit("vote_started", data, to=data["room_code"])
+            print(f"[BRIDGE] vote_started emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_vote_started: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_vote_update(self, data: dict):
+        """Push live vote tally to all players (POSTGAME-03)."""
+        try:
+            socketio.emit("vote_update", data, to=data["room_code"])
+            print(f"[BRIDGE] vote_update emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_vote_update: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_game_restarting(self, data: dict):
+        """Notify all players that the game is restarting (POSTGAME-04 majority yes)."""
+        try:
+            socketio.emit("game_restarting", data, to=data["room_code"])
+            print(f"[BRIDGE] game_restarting emitted to room {data['room_code']}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_game_restarting: {exc}", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Callback daemon startup — binds receiver to a loopback Pyro5 daemon
@@ -267,6 +320,11 @@ _sid_lock = threading.Lock()
 # Bridge callback URI set in __main__ after start_callback_daemon(); handlers
 # read this to pass the bridge's receiver URI to GameServer methods (Pitfall 2)
 _cb_uri = ""
+
+# Grace-period disconnect state (D-01) — SID → (threading.Timer, player_id)
+# Keyed by SID not player_id so reconnect can cancel by player_id scan (Pitfall 1)
+_pending_leaves: dict = {}
+_pending_leaves_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------
 # Per-thread Pyro5 proxy (D-10) — each Flask-SocketIO handler thread gets its
@@ -556,18 +614,92 @@ def handle_join_room(data):
 
 @socketio.on("disconnect")
 def handle_disconnect(reason):
-    """On disconnect, remove player from session via leave_game RPC."""
+    """On disconnect, start a 5s grace timer before calling leave_game (D-01).
+
+    If the player reconnects within 5s the timer is cancelled (D-02).
+    Keyed by SID so a reconnected player with a new SID is handled correctly.
+    """
     with _sid_lock:
         player_id = _sid_to_player.pop(request.sid, None)
         if player_id:
             _player_to_sid.pop(player_id, None)
+    sid = request.sid
     if player_id:
-        try:
-            proxy = get_game_server_proxy()
-            proxy.leave_game(player_id)
-            print(f"[BRIDGE] disconnect: player {player_id} left (reason: {reason})", flush=True)
-        except Exception as exc:
-            print(f"[BRIDGE] leave_game failed for {player_id}: {exc}", flush=True)
+        def do_leave():
+            with _pending_leaves_lock:
+                _pending_leaves.pop(sid, None)
+            try:
+                proxy = get_game_server_proxy()
+                proxy.leave_game(player_id)
+                print(f"[BRIDGE] disconnect: player {player_id} left (reason: {reason})", flush=True)
+            except Exception as exc:
+                print(f"[BRIDGE] leave_game failed for {player_id}: {exc}", flush=True)
+        t = threading.Timer(5.0, do_leave)
+        t.daemon = True
+        with _pending_leaves_lock:
+            _pending_leaves[sid] = (t, player_id)
+        t.start()
+
+
+@socketio.on("reconnect_game")
+def handle_reconnect_game(data):
+    """Cancel any pending leave and re-register SID mapping for reconnecting player (D-02).
+
+    Payload: {player_id: str, room_code: str}
+    Returns (as ack): player view dict or {error: str}
+    """
+    player_id = (data or {}).get("player_id", "")
+    room_code = (data or {}).get("room_code", "")
+    if not player_id or not room_code:
+        return {"error": "missing fields"}
+    # Cancel any pending leave for this player_id (search by pid, keyed by old SID)
+    with _pending_leaves_lock:
+        for old_sid, (timer, pid) in list(_pending_leaves.items()):
+            if pid == player_id:
+                timer.cancel()
+                del _pending_leaves[old_sid]
+                break
+    # Re-register new SID mapping
+    with _sid_lock:
+        _sid_to_player[request.sid] = player_id
+        _player_to_sid[player_id] = request.sid
+    join_room(room_code)
+    proxy = get_game_server_proxy()
+    result = proxy.reconnect_player(player_id, room_code, _cb_uri)
+    print(f"[BRIDGE] reconnect_game: player {player_id} reconnected to room {room_code}", flush=True)
+    return result
+
+
+@socketio.on("send_chat")
+def handle_send_chat(data):
+    """Forward a chat message to GameServer; identity resolved from SID (CHAT-01).
+
+    Payload: {message: str}
+    Returns (as ack): {ok: True} or {error: str}
+    """
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.send_chat(player_id, (data or {}).get("message", ""))
+    return result
+
+
+@socketio.on("submit_vote")
+def handle_submit_vote(data):
+    """Forward a play-again vote to GameServer; identity resolved from SID (POSTGAME-03).
+
+    Payload: {continue_game: bool}
+    Returns (as ack): {ok: True} or {error: str}
+    """
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.submit_vote(player_id, bool((data or {}).get("continue_game", False)))
+    return result
 
 
 # ---------------------------------------------------------------------------
