@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router'
+import { useParams, useNavigate, useLocation } from 'react-router'
 import socket from '../socket'
 import './PostGame.css'
 
@@ -36,25 +36,48 @@ function voteBarColor(secondsLeft: number): string {
 export default function PostGame() {
   const { roomCode } = useParams<{ roomCode: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const navState = location.state as { voteActive?: boolean; durationSeconds?: number; playerCount?: number } | null
   const myPlayerId = localStorage.getItem('player_id') ?? ''
 
   // Score data — may arrive via game_ended (which fires after vote_started navigate)
   const [finalScores, setFinalScores] = useState<ScoreEntry[]>([])
   const [turnHistory, setTurnHistory] = useState<TurnScoreEntry[]>([])
 
-  // Vote state
-  const [voteActive, setVoteActive] = useState(false)
-  const [voteSecondsLeft, setVoteSecondsLeft] = useState(30)
+  // Vote state — initialize from nav state so vote UI shows immediately on mount
+  const [voteActive, setVoteActive] = useState(navState?.voteActive ?? false)
+  const [voteSecondsLeft, setVoteSecondsLeft] = useState(navState?.durationSeconds ?? 30)
   const [myVoteSubmitted, setMyVoteSubmitted] = useState(false)
   const [yesCount, setYesCount] = useState(0)
   const [votesCast, setVotesCast] = useState(0)
-  const [totalPlayers, setTotalPlayers] = useState(0)
+  const [totalPlayers, setTotalPlayers] = useState(navState?.playerCount ?? 0)
 
   const [voteResult, setVoteResult] = useState<'restarting' | 'ended' | null>(null)
-  const [redirectCountdown, setRedirectCountdown] = useState(3)
+  const [redirectCountdown, setRedirectCountdown] = useState(10)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const redirectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Start vote countdown immediately on mount if navigated here with voteActive state
+  useEffect(() => {
+    if (!navState?.voteActive) return
+    let secs = navState.durationSeconds ?? 30
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => {
+      secs = Math.max(0, secs - 1)
+      setVoteSecondsLeft(secs)
+      if (secs === 0 && intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }, 1000)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, []) // runs once on mount — navState is stable
 
   useEffect(() => {
     if (!socket.connected) socket.connect()
@@ -113,8 +136,8 @@ export default function PostGame() {
       setVoteActive(false)
       setVoteResult('ended')
 
-      // 3s redirect countdown then navigate to landing
-      let count = 3
+      // 10s redirect countdown then navigate to landing
+      let count = 10
       setRedirectCountdown(count)
       if (redirectIntervalRef.current) clearInterval(redirectIntervalRef.current)
       redirectIntervalRef.current = setInterval(() => {

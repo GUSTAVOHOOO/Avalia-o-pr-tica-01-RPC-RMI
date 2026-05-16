@@ -257,8 +257,10 @@ export default function GameScreen() {
     const handleChatMessage = (data: ChatMessage) => {
       setChatMessages((prev) => [...prev, data])
     }
-    const handleVoteStarted = (_data: VoteStartedPayload) => {
-      navigate(`/postgame/${roomCode}`)
+    const handleVoteStarted = (data: VoteStartedPayload) => {
+      navigate(`/postgame/${roomCode}`, {
+        state: { voteActive: true, durationSeconds: data.duration_seconds, playerCount: data.player_count }
+      })
     }
 
     socket.on('phase_changed', handlePhaseChanged)
