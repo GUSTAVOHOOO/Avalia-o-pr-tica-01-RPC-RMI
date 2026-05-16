@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-05-16T17:36:34.587Z"
+last_updated: "2026-05-16T18:26:15.146Z"
 last_activity: 2026-05-16 -- Phase 07 execution started
 progress:
   total_phases: 8
   completed_phases: 6
   total_plans: 26
-  completed_plans: 22
+  completed_plans: 25
   percent: 75
 ---
 
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-12)
 
 **Core value:** Demonstrar arquitetura distribuída event-driven funcional: servidor Pyro5 com callbacks push para todos os clientes, mecânicas de jogo completas e interface web reagindo em tempo real com 2–4 jogadores simultâneos
-**Current focus:** Phase 07 — Reconnection + End-of-Game
+**Current focus:** Phase 07 — reconnection-end-of-game
 
 ## Current Position
 
-Phase: 07 (Reconnection + End-of-Game) — EXECUTING
+Phase: 07 (reconnection-end-of-game) — EXECUTING
 Plan: 1 of 4
 Status: Executing Phase 07
 Last activity: 2026-05-16 -- Phase 07 execution started
@@ -99,6 +99,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260514-iib | criar infraestrutura de demo em docker compose para o projeto Pyro5/Flask-SocketIO | 2026-05-14 | 7071be4 | [260514-iib-criar-infraestrutura-de-demo-em-docker-c](./quick/260514-iib-criar-infraestrutura-de-demo-em-docker-c/) |
+| 260516-me3 | Adicionar opção de 1 turno para testes rápidos | 2026-05-16 | c207e08 | [260516-me3-adicionar-opcao-1-turno](./quick/260516-me3-adicionar-opcao-1-turno/) |
 
 ## Deferred Items
 
