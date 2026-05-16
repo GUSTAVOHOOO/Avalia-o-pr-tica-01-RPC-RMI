@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router'
 import socket from '../socket'
 import PhaseBadge from '../components/PhaseBadge'
 import CountdownDisplay from '../components/CountdownDisplay'
+import ChatPanel from '../components/ChatPanel'
 import './GameScreen.css'
 
 interface ObjectAssignedPayload {
@@ -312,6 +313,10 @@ export default function GameScreen() {
     setMyGuessSubmitted(true)
   }
 
+  function sendChatMessage(msg: string) {
+    socket.emit('send_chat', { message: msg }, () => undefined)
+  }
+
   /* ─── Phase panels ──────────────────────────────────────────────────────── */
   const renderPhasePanel = () => {
     if (currentPhase === 'HINT_PHASE') {
@@ -529,6 +534,11 @@ export default function GameScreen() {
           ) : (
             renderPhasePanel()
           )}
+          <ChatPanel
+            messages={chatMessages}
+            myPlayerId={myPlayerId}
+            onSend={sendChatMessage}
+          />
         </div>
       </div>
     </div>

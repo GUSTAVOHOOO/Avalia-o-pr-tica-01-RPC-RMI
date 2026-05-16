@@ -1,0 +1,139 @@
+/* ─── Chat Panel ─────────────────────────────────────────────────────────── */
+/* D-04: visually distinct from game action panels — muted-gray left border  */
+.chat-panel {
+  background-color: #1a1d27;
+  border: 1px solid #2d3148;
+  border-left: 3px solid #6b7280; /* muted gray — NOT a phase accent color */
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-panel__header {
+  display: flex;
+  align-items: center;
+}
+
+.chat-panel__title {
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Scrollable message list */
+.chat-panel__messages {
+  overflow-y: auto;
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 48px;
+}
+
+/* Single message row */
+.chat-panel__message {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid #2d3148;
+}
+
+.chat-panel__message:last-child {
+  border-bottom: none;
+}
+
+.chat-panel__message--mine .chat-panel__message-name {
+  color: #6366f1;
+}
+
+.chat-panel__message-name {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.chat-panel__message-text {
+  color: #f1f5f9;
+  font-size: 14px;
+  flex: 1;
+  word-break: break-word;
+}
+
+.chat-panel__message-time {
+  color: #6b7280;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Empty state */
+.chat-panel__empty {
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+  padding: 8px 0;
+}
+
+/* Input field wrapper */
+.chat-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-panel__label-text {
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* D-04: distinct border color (#4b5563) vs game action inputs (#2d3148) */
+.chat-panel__input {
+  background-color: #0f1117;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 16px;
+  height: 40px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-panel__input:disabled {
+  opacity: 0.5;
+}
+
+.chat-panel__input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+}
+
+/* D-04: submit button uses accent bg but distinct label "Enviar mensagem" */
+.chat-panel__submit {
+  background-color: #6366f1;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  color: #f1f5f9;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 44px;
+  width: 100%;
+}
+
+.chat-panel__submit:disabled {
+  background-color: #1a1d27;
+  border-color: #2d3148;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-weight: 400;
+  opacity: 0.75;
+}
