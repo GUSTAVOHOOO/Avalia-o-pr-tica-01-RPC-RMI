@@ -20,6 +20,7 @@ class EventBroadcaster:
     def __init__(self):
         self.callbacks = {}          # player_id -> uri str
         self.lock = threading.Lock()
+        self.failure_counts: dict = {}  # player_id -> consecutive transient failure count (D-08)
 
     def register_callback(self, player_id: str, callback_uri: str):
         """Store (or overwrite) the callback URI for player_id.
@@ -68,20 +69,30 @@ class EventBroadcaster:
                 with Pyro5.api.Proxy(uri) as proxy:
                     method = getattr(proxy, "on_" + event_type.lower())
                     method(data)
+                # Successful delivery — reset consecutive failure counter (D-08)
+                self.failure_counts.pop(player_id, None)
             except (ConnectionRefusedError, OSError) as e:
                 # Permanent failure — remote end is gone; remove entry (WR-03)
                 print(f"[EventBroadcaster] Permanent callback failure for {player_id}: {e}",
                       flush=True)
                 failed.append(player_id)
             except Exception as e:
-                # Transient failure (timeout, etc.) — log but keep registration
-                print(f"[EventBroadcaster] Transient callback error for {player_id}: {e}",
-                      flush=True)
+                # Transient failure (timeout, etc.) — increment consecutive counter (D-08)
+                count = self.failure_counts.get(player_id, 0) + 1
+                self.failure_counts[player_id] = count
+                print(f"[EventBroadcaster] Transient callback error for {player_id} "
+                      f"(count={count}): {e}", flush=True)
+                if count >= 3:
+                    # 3 consecutive transient failures — treat as permanent removal
+                    failed.append(player_id)
+                    self.failure_counts.pop(player_id, None)
 
         if failed:
             with self.lock:
                 for pid in failed:
                     self.callbacks.pop(pid, None)
+
+        return failed
 
     def send_to_player(self, player_id: str, event_type: str, data: dict):
         """Deliver event_type to a single registered player."""
