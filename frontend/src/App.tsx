@@ -5,6 +5,7 @@ import JoinGame from './pages/JoinGame'
 import JoinByCode from './pages/JoinByCode'
 import Lobby from './pages/Lobby'
 import GameScreen from './pages/GameScreen'
+import PostGame from './pages/PostGame'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/join/:code" element={<JoinByCode />} />
         <Route path="/lobby/:sessionId" element={<Lobby />} />
         <Route path="/game/:roomCode" element={<GameScreen />} />
+        <Route path="/postgame/:roomCode" element={<PostGame />} />
       </Routes>
     </BrowserRouter>
   )
