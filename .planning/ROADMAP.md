@@ -179,9 +179,9 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Wave 0: test stubs for all Phase 7 behaviors (16 pytest.skip stubs across 4 test files)
-- [ ] 07-02-PLAN.md — Server backbone: EventBroadcaster failure tracking, reconnect_player, send_chat, VoteRecord, vote methods, turn_score_history; all tests green
-- [ ] 07-03-PLAN.md — Bridge + GameScreen: grace-period disconnect, reconnect_game handler, 5 new callback methods, GameScreen reconnect-on-mount + navigate to /postgame
+- [x] 07-01-PLAN.md — Wave 0: test stubs for all Phase 7 behaviors (16 pytest.skip stubs across 4 test files)
+- [x] 07-02-PLAN.md — Server backbone: EventBroadcaster failure tracking, reconnect_player, send_chat, VoteRecord, vote methods, turn_score_history; all tests green
+- [x] 07-03-PLAN.md — Bridge + GameScreen: grace-period disconnect, reconnect_game handler, 5 new callback methods, GameScreen reconnect-on-mount + navigate to /postgame
 - [ ] 07-04-PLAN.md — PostGame screen, ChatPanel component, /postgame route: podium, vote UI, chat integration end-to-end
 **UI hint**: yes
 
@@ -215,5 +215,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
 | 6. Synonym Arbitration | 3/3 | Complete   | 2026-05-15 |
-| 7. Reconnection + End-of-Game | 0/TBD | Not started | - |
+| 7. Reconnection + End-of-Game | 3/4 | In Progress|  |
 | 8. UI Polish + Technical Report | 0/TBD | Not started | - |
