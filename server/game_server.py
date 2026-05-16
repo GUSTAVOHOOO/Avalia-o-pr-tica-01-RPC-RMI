@@ -221,8 +221,8 @@ class GameServer:
             raise ValueError("player_name must be at most 20 characters")
         if not isinstance(callback_uri, str) or not callback_uri:
             raise ValueError("callback_uri must be a non-empty string")
-        if max_turns not in {3, 5, 7, 10}:
-            raise ValueError("max_turns must be one of {3, 5, 7, 10}")
+        if max_turns not in {1, 3, 5, 7, 10}:
+            raise ValueError("max_turns must be one of {1, 3, 5, 7, 10}")
 
         with self.lock:
             room_code = self._generate_room_code()
