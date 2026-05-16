@@ -58,26 +58,48 @@ export default function PostGame() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const redirectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Start vote countdown immediately on mount if navigated here with voteActive state
+  // On mount: start countdown from nav state OR sync via join_room if no nav state
   useEffect(() => {
-    if (!navState?.voteActive) return
-    let secs = navState.durationSeconds ?? 30
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      secs = Math.max(0, secs - 1)
-      setVoteSecondsLeft(secs)
-      if (secs === 0 && intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }, 1000)
+    function startCountdown(secs: number) {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      let remaining = secs
+      intervalRef.current = setInterval(() => {
+        remaining = Math.max(0, remaining - 1)
+        setVoteSecondsLeft(remaining)
+        if (remaining === 0 && intervalRef.current) {
+          clearInterval(intervalRef.current)
+          intervalRef.current = null
+        }
+      }, 1000)
+    }
+
+    if (navState?.voteActive) {
+      startCountdown(navState.durationSeconds ?? 30)
+    } else if (roomCode && myPlayerId) {
+      // No nav state — re-sync from server (reconnect / direct URL open)
+      socket.emit(
+        'join_room',
+        { room_code: roomCode, player_id: myPlayerId },
+        (resp: Record<string, unknown>) => {
+          if (resp?.vote_active) {
+            const secs = typeof resp.vote_seconds_remaining === 'number' ? resp.vote_seconds_remaining : 30
+            const count = typeof resp.vote_player_count === 'number' ? resp.vote_player_count : 0
+            setVoteActive(true)
+            setVoteSecondsLeft(secs)
+            setTotalPlayers(count)
+            startCountdown(secs)
+          }
+        },
+      )
+    }
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
     }
-  }, []) // runs once on mount — navState is stable
+  }, []) // runs once on mount
 
   useEffect(() => {
     if (!socket.connected) socket.connect()

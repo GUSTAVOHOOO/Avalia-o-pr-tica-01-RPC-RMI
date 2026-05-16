@@ -15,6 +15,7 @@ import random
 import string
 import sys
 import threading
+import time
 import uuid
 from typing import List, Optional
 
@@ -55,6 +56,8 @@ class VoteRecord:
     votes: dict = dataclasses.field(default_factory=dict)   # player_id -> bool
     generation: int = 0
     timer: object = dataclasses.field(default=None, repr=False)
+    start_time: float = dataclasses.field(default_factory=time.time)
+    duration_seconds: int = 30
 
 
 @dataclasses.dataclass
@@ -375,6 +378,12 @@ class GameServer:
                             "image_url": f"/static/images/{filename}",
                             "object_name": object_name,
                         }
+            if session.vote_record is not None:
+                elapsed = time.time() - session.vote_record.start_time
+                remaining = max(0, int(session.vote_record.duration_seconds - elapsed))
+                result["vote_active"] = True
+                result["vote_seconds_remaining"] = remaining
+                result["vote_player_count"] = len(session.players)
             return result
 
     def _set_session_ended(self, room_code: str) -> None:
