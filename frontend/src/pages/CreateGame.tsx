@@ -103,6 +103,7 @@ export default function CreateGame() {
               disabled={loading}
               className="rounded-lg px-3 py-2 text-base disabled:opacity-50 disabled:cursor-not-allowed page-input"
             >
+              <option value={1}>1 turno (teste)</option>
               <option value={3}>3 turnos</option>
               <option value={5}>5 turnos</option>
               <option value={7}>7 turnos</option>
