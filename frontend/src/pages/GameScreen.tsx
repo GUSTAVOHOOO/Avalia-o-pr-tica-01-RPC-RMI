@@ -4,6 +4,9 @@ import socket from '../socket'
 import PhaseBadge from '../components/PhaseBadge'
 import CountdownDisplay from '../components/CountdownDisplay'
 import ChatPanel from '../components/ChatPanel'
+import PhaseModal from '../components/PhaseModal'
+import ReconnectionBanner from '../components/ReconnectionBanner'
+import ScoreDeltaToast from '../components/ScoreDeltaToast'
 import './GameScreen.css'
 
 interface ObjectAssignedPayload {
@@ -47,6 +50,7 @@ interface PhaseChangedPayload {
   max_turns: number
   room_code: string
   hints?: Record<string, string>
+  spy_targets?: string[]
 }
 
 interface JoinRoomPayload {
@@ -73,6 +77,10 @@ interface VoteStartedPayload {
   player_count: number
 }
 
+/* ─── Exchange/SPY types ──────────────────────────────────────────────────── */
+interface ExchangeRequest { exchange_id: string; requester_id: string }
+interface DeltaToast { id: string; playerName: string; delta: number }
+
 const passiveStatus: Record<string, string> = {
   ROUND_START: 'Aguardando proxima fase...',
   EXCHANGE_PHASE: 'Aguardando proxima fase...',
@@ -81,16 +89,14 @@ const passiveStatus: Record<string, string> = {
   WAITING: 'Aguardando proxima fase...',
 }
 
+const ACTION_PHASES = ['HINT_PHASE', 'GUESS_PHASE', 'EXCHANGE_PHASE', 'SPY_PHASE']
+
 function readPlayersFromStorage(): Player[] {
   try {
     return JSON.parse(localStorage.getItem('players') ?? '[]') as Player[]
   } catch {
     return []
   }
-}
-
-function playerName(players: Player[], playerId: string) {
-  return players.find((p) => p.player_id === playerId)?.player_name ?? playerId
 }
 
 function formatDelta(delta: number) {
@@ -151,6 +157,20 @@ export default function GameScreen() {
   const [playerLeftMsg, setPlayerLeftMsg] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Exchange/SPY state
+  const [exchangeRequest, setExchangeRequest] = useState<ExchangeRequest | null>(null)
+  const [myExchangeId, setMyExchangeId] = useState<string | null>(null)
+  const [exchangeStatus, setExchangeStatus] = useState<string | null>(null)
+  const [exchangeHintInput, setExchangeHintInput] = useState('')
+  const [exchangeHintSubmitted, setExchangeHintSubmitted] = useState(false)
+  const [selectedSpyTarget, setSelectedSpyTarget] = useState('')
+  const [spyTargets, setSpyTargets] = useState<string[]>([])
+  const [spyAttempted, setSpyAttempted] = useState(false)
+  // Delta toasts
+  const [deltaToasts, setDeltaToasts] = useState<DeltaToast[]>([])
+  // Banner
+  const [bannerVisible, setBannerVisible] = useState(false)
+
   useEffect(() => {
     if (!socket.connected) socket.connect()
 
@@ -175,9 +195,21 @@ export default function GameScreen() {
         setGuessInput('')
         setGuessIsCorrect(null)
         setScores([])
+        // Reset exchange/spy state on new turn
+        setExchangeRequest(null)
+        setMyExchangeId(null)
+        setExchangeStatus(null)
+        setExchangeHintInput('')
+        setExchangeHintSubmitted(false)
+        setSelectedSpyTarget('')
+        setSpyAttempted(false)
+        setDeltaToasts([])
       }
       if (data.phase === 'GUESS_PHASE' && data.hints) {
         setHints(data.hints)
+      }
+      if (data.phase === 'SPY_PHASE' && data.spy_targets) {
+        setSpyTargets(data.spy_targets)
       }
 
       let secs = data.remaining_seconds
@@ -238,7 +270,17 @@ export default function GameScreen() {
     const handleGuessResult = (data: GuessResultPayload) => {
       if (data.guesser_id === myPlayerId) setGuessIsCorrect(data.is_correct)
     }
-    const handleScoreUpdated = (data: ScoreUpdatedPayload) => setScores(data.scores)
+    const handleScoreUpdated = (data: ScoreUpdatedPayload) => {
+      setScores(data.scores)
+      const newToasts = data.scores
+        .filter((s) => s.turn_delta !== 0)
+        .map((s) => ({
+          id: `${s.player_id}-${Date.now()}`,
+          playerName: s.player_name,
+          delta: s.turn_delta,
+        }))
+      setDeltaToasts((prev) => [...prev, ...newToasts])
+    }
     const handleGameEnded = (data: { final_scores?: unknown[] }) => {
       // TurnMachine broadcasts game_ended (no final_scores) before _start_vote().
       // Ignore that intermediate broadcast — vote_started handles navigation.
@@ -267,6 +309,20 @@ export default function GameScreen() {
       })
     }
 
+    // Exchange/SPY handlers
+    const handleExchangeRequested = (data: { exchange_id: string; requester_id: string }) => {
+      setExchangeRequest({ exchange_id: data.exchange_id, requester_id: data.requester_id })
+    }
+    const handleExchangeHints = () => {
+      setExchangeHintSubmitted(true)
+    }
+    const handleSpySuccess = () => {
+      setSpyAttempted(true)
+    }
+    const handleSpyDiscovered = () => {
+      setSpyAttempted(true)
+    }
+
     socket.on('phase_changed', handlePhaseChanged)
     socket.on('object_assigned', handleObjectAssigned)
     socket.on('hint_received', handleHintReceived)
@@ -277,6 +333,10 @@ export default function GameScreen() {
     socket.on('game_restarting', handleGameRestarting)
     socket.on('chat_message', handleChatMessage)
     socket.on('vote_started', handleVoteStarted)
+    socket.on('exchange_requested', handleExchangeRequested)
+    socket.on('exchange_hints', handleExchangeHints)
+    socket.on('spy_success', handleSpySuccess)
+    socket.on('spy_discovered', handleSpyDiscovered)
 
     return () => {
       if (intervalRef.current) {
@@ -293,21 +353,23 @@ export default function GameScreen() {
       socket.off('game_restarting', handleGameRestarting)
       socket.off('chat_message', handleChatMessage)
       socket.off('vote_started', handleVoteStarted)
+      socket.off('exchange_requested', handleExchangeRequested)
+      socket.off('exchange_hints', handleExchangeHints)
+      socket.off('spy_success', handleSpySuccess)
+      socket.off('spy_discovered', handleSpyDiscovered)
     }
   }, [roomCode, myPlayerId, navigate])
 
-  const otherPlayers = players.filter((p) => p.player_id !== myPlayerId)
-  const canSubmitHint = hintInput.trim() !== '' && !myHintSubmitted
-  const canSubmitGuess = guessTarget !== '' && guessInput.trim() !== '' && !myGuessSubmitted
-
   function submitHint() {
-    if (!canSubmitHint) return
+    const canSubmit = hintInput.trim() !== '' && !myHintSubmitted
+    if (!canSubmit) return
     socket.emit('submit_hint', { hint_word: hintInput }, () => undefined)
     setMyHintSubmitted(true)
   }
 
   function submitGuess() {
-    if (!canSubmitGuess) return
+    const canSubmit = guessTarget !== '' && guessInput.trim() !== '' && !myGuessSubmitted
+    if (!canSubmit) return
     socket.emit('submit_guess', { target_player_id: guessTarget, guess_word: guessInput }, () => undefined)
     setMyGuessSubmitted(true)
     setGuessIsCorrect(null)
@@ -319,190 +381,35 @@ export default function GameScreen() {
     setMyGuessSubmitted(true)
   }
 
+  function respondExchange(accept: boolean) {
+    if (!exchangeRequest) return
+    socket.emit('respond_exchange', { exchange_id: exchangeRequest.exchange_id, accept }, () => undefined)
+    if (!accept) setExchangeRequest(null)
+    else setExchangeStatus('accepted')
+  }
+
+  function submitExchangeHint() {
+    if (!exchangeRequest || exchangeHintSubmitted) return
+    socket.emit('submit_exchange_hint', { exchange_id: exchangeRequest.exchange_id, hint_word: exchangeHintInput }, () => undefined)
+    setExchangeHintSubmitted(true)
+  }
+
+  function attemptSpy() {
+    if (!selectedSpyTarget || spyAttempted) return
+    socket.emit('attempt_spy', { exchange_id: selectedSpyTarget }, () => undefined)
+    setSpyAttempted(true)
+  }
+
+  const removeToast = (id: string) => setDeltaToasts((prev) => prev.filter((t) => t.id !== id))
+
   function sendChatMessage(msg: string) {
     socket.emit('send_chat', { message: msg }, () => undefined)
   }
 
-  /* ─── Phase panels ──────────────────────────────────────────────────────── */
-  const renderPhasePanel = () => {
-    if (currentPhase === 'HINT_PHASE') {
-      return (
-        <>
-          <SecretImagePanel assignment={myObjectAssignment} />
-          <section className="phase-panel phase-panel--hint">
-            <h2 className="phase-panel__title">Fase de Dicas</h2>
-            <p aria-live="polite" className="panel-progress">
-              {hintsCount}/{totalPlayers} dicas recebidas
-            </p>
-            <label className="panel-field">
-              <span className="panel-label-text">Dica</span>
-              <input
-                type="text"
-                maxLength={30}
-                value={hintInput}
-                onChange={(e) => setHintInput(e.target.value)}
-                disabled={myHintSubmitted}
-                aria-label="Dica de uma palavra"
-                placeholder="Uma palavra..."
-                className="panel-input"
-              />
-            </label>
-            <button
-              type="button"
-              onClick={submitHint}
-              disabled={!canSubmitHint}
-              aria-disabled={!canSubmitHint ? 'true' : 'false'}
-              className="panel-btn-primary"
-            >
-              {myHintSubmitted ? 'Dica enviada' : 'Enviar Dica'}
-            </button>
-          </section>
-        </>
-      )
-    }
-
-    if (currentPhase === 'GUESS_PHASE') {
-      return (
-        <>
-          <SecretImagePanel assignment={myObjectAssignment} />
-          <section className="phase-panel phase-panel--guess">
-            <h2 className="phase-panel__title">Fase de Palpites</h2>
-            <div className="panel-field">
-              <span className="panel-label-text">Dicas dos jogadores:</span>
-              <div className="hint-chips">
-                {Object.entries(hints).length === 0 ? (
-                  <span className="panel-label-text">Aguardando jogadores</span>
-                ) : (
-                  Object.entries(hints).map(([playerId, hintWord]) => (
-                    <span
-                      key={playerId}
-                      className={[
-                        'hint-chip',
-                        playerId === myPlayerId ? 'hint-chip--mine' : '',
-                        !hintWord ? 'hint-chip--empty' : '',
-                      ].join(' ').trim()}
-                    >
-                      {playerName(players, playerId)}: {hintWord || '-'}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-            <label className="panel-field">
-              <span className="panel-label-text">Adivinhar objeto de:</span>
-              <select
-                value={guessTarget}
-                onChange={(e) => setGuessTarget(e.target.value)}
-                disabled={myGuessSubmitted}
-                className="panel-input"
-              >
-                <option value="">Selecione um jogador</option>
-                {otherPlayers.map((p) => (
-                  <option key={p.player_id} value={p.player_id}>
-                    {p.player_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="panel-field">
-              <span className="panel-label-text">Palpite</span>
-              <input
-                type="text"
-                maxLength={50}
-                value={guessInput}
-                onChange={(e) => setGuessInput(e.target.value)}
-                disabled={myGuessSubmitted}
-                aria-label="Palpite"
-                placeholder="Sua palavra..."
-                className="panel-input"
-              />
-            </label>
-            <div className="panel-btn-row">
-              <button
-                type="button"
-                onClick={submitGuess}
-                disabled={!canSubmitGuess}
-                aria-disabled={!canSubmitGuess ? 'true' : 'false'}
-                className="panel-btn-primary panel-btn-primary--flex"
-              >
-                {myGuessSubmitted ? 'Palpite enviado' : 'Enviar Palpite'}
-              </button>
-              <button
-                type="button"
-                onClick={skipGuess}
-                disabled={myGuessSubmitted}
-                aria-disabled={myGuessSubmitted ? 'true' : 'false'}
-                className="panel-btn-skip"
-              >
-                Passar
-              </button>
-            </div>
-            {myGuessSubmitted && (
-              <p
-                aria-live="polite"
-                className={[
-                  'guess-result',
-                  guessIsCorrect === true ? 'guess-result--correct' : '',
-                  guessIsCorrect === false ? 'guess-result--incorrect' : '',
-                ].join(' ').trim()}
-              >
-                {guessIsCorrect === true
-                  ? 'Correto!'
-                  : guessIsCorrect === false
-                    ? 'Errado.'
-                    : 'Aguardando resultado...'}
-              </p>
-            )}
-          </section>
-        </>
-      )
-    }
-
-    if (currentPhase === 'SCORING_PHASE') {
-      return (
-        <section className="phase-panel phase-panel--scoring">
-          <h2 className="phase-panel__title">Pontuacao do Turno</h2>
-          {scores.length === 0 ? (
-            <p className="score-calculating">Calculando pontuacao...</p>
-          ) : (
-            <div className="score-list">
-              {scores.map((score) => (
-                <div
-                  key={score.player_id}
-                  className={[
-                    'score-row',
-                    score.player_id === myPlayerId ? 'score-row--mine' : '',
-                  ].join(' ').trim()}
-                >
-                  <span className="score-row__name">{score.player_name}</span>
-                  <span
-                    className={[
-                      'score-row__delta',
-                      score.turn_delta > 0 ? 'score-row__delta--positive' : '',
-                      score.turn_delta < 0 ? 'score-row__delta--negative' : '',
-                    ].join(' ').trim()}
-                  >
-                    {formatDelta(score.turn_delta)}
-                  </span>
-                  <span className="score-row__total">Total: {score.total}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )
-    }
-
-    return (
-      <p className="game-screen__status">
-        {passiveStatus[currentPhase ?? ''] ?? 'Aguardando proxima fase...'}
-      </p>
-    )
-  }
-
   /* ─── Main render ───────────────────────────────────────────────────────── */
   return (
-    <div className="game-screen">
+    <div className={`game-screen${bannerVisible ? ' game-screen--banner-visible' : ''}`}>
+      <ReconnectionBanner onStateChange={setBannerVisible} />
       {playerLeftMsg && (
         <div className="player-left-toast">
           <span className="player-left-toast__text">{playerLeftMsg}</span>
@@ -538,7 +445,97 @@ export default function GameScreen() {
           ) : currentPhase === null ? (
             <p className="game-screen__status">Conectando...</p>
           ) : (
-            renderPhasePanel()
+            <>
+              {/* Secret image for action phases (not scoring) */}
+              {currentPhase !== 'SCORING_PHASE' && ACTION_PHASES.includes(currentPhase) && (
+                <SecretImagePanel assignment={myObjectAssignment} />
+              )}
+
+              {/* Phase modal overlay for the 4 action phases */}
+              <div style={{ position: 'relative' }}>
+                <PhaseModal
+                  phase={currentPhase}
+                  players={players}
+                  myPlayerId={myPlayerId}
+                  hintInput={hintInput}
+                  onHintChange={setHintInput}
+                  onHintSubmit={submitHint}
+                  hintSubmitted={myHintSubmitted}
+                  hintsCount={hintsCount}
+                  totalPlayers={totalPlayers}
+                  hints={hints}
+                  guessTarget={guessTarget}
+                  onGuessTargetChange={setGuessTarget}
+                  guessInput={guessInput}
+                  onGuessInputChange={setGuessInput}
+                  onGuessSubmit={submitGuess}
+                  onGuessSkip={skipGuess}
+                  guessSubmitted={myGuessSubmitted}
+                  guessIsCorrect={guessIsCorrect}
+                  exchangeRequest={exchangeRequest}
+                  myExchangeId={myExchangeId}
+                  exchangeStatus={exchangeStatus}
+                  exchangeHintInput={exchangeHintInput}
+                  onExchangeHintChange={setExchangeHintInput}
+                  onExchangeAccept={() => respondExchange(true)}
+                  onExchangeDecline={() => respondExchange(false)}
+                  onExchangeHintSubmit={submitExchangeHint}
+                  exchangeHintSubmitted={exchangeHintSubmitted}
+                  spyTargets={spyTargets}
+                  selectedSpyTarget={selectedSpyTarget}
+                  onSpyTargetSelect={setSelectedSpyTarget}
+                  onSpyAttempt={attemptSpy}
+                  spyAttempted={spyAttempted}
+                />
+                {deltaToasts.map((t) => (
+                  <ScoreDeltaToast key={t.id} id={t.id} delta={t.delta} playerName={t.playerName} onDone={removeToast} />
+                ))}
+              </div>
+
+              {/* Scoring phase inline view */}
+              {currentPhase === 'SCORING_PHASE' && (
+                <section className="phase-panel phase-panel--scoring" style={{ position: 'relative' }}>
+                  <h2 className="phase-panel__title">Pontuacao do Turno</h2>
+                  {deltaToasts.map((t) => (
+                    <ScoreDeltaToast key={t.id} id={t.id} delta={t.delta} playerName={t.playerName} onDone={removeToast} />
+                  ))}
+                  {scores.length === 0 ? (
+                    <p className="score-calculating">Calculando pontuacao...</p>
+                  ) : (
+                    <div className="score-list">
+                      {scores.map((score) => (
+                        <div
+                          key={score.player_id}
+                          className={[
+                            'score-row',
+                            score.player_id === myPlayerId ? 'score-row--mine' : '',
+                          ].join(' ').trim()}
+                        >
+                          <span className="score-row__name">{score.player_name}</span>
+                          <span
+                            className={[
+                              'score-row__delta',
+                              score.turn_delta > 0 ? 'score-row__delta--positive' : '',
+                              score.turn_delta < 0 ? 'score-row__delta--negative' : '',
+                            ].join(' ').trim()}
+                          >
+                            {formatDelta(score.turn_delta)}
+                          </span>
+                          <span className="score-row__total">Total: {score.total}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Passive status for non-action, non-scoring phases */}
+              {!ACTION_PHASES.includes(currentPhase) && currentPhase !== 'SCORING_PHASE' && (
+                <p className="game-screen__status">
+                  {passiveStatus[currentPhase] ?? 'Aguardando proxima fase...'}
+                </p>
+              )}
+            </>
           )}
           <ChatPanel
             messages={chatMessages}

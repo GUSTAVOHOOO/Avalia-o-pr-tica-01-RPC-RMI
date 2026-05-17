@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import socket from '../socket'
 import './ReconnectionBanner.css'
 
-export default function ReconnectionBanner() {
+interface ReconnectionBannerProps {
+  onStateChange?: (visible: boolean) => void
+}
+
+export default function ReconnectionBanner({ onStateChange }: ReconnectionBannerProps) {
   const [bannerState, setBannerState] = useState<'hidden' | 'amber' | 'red'>('hidden')
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -27,6 +31,13 @@ export default function ReconnectionBanner() {
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
     }
   }, [])
+
+  // Notify parent when banner visibility changes
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange(bannerState !== 'hidden')
+    }
+  }, [bannerState, onStateChange])
 
   if (bannerState === 'hidden') return null
 
