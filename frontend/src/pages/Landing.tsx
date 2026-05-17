@@ -55,7 +55,7 @@ export default function Landing() {
           ].map((card) => (
             <div
               key={card.title}
-              className="rounded-lg p-4"
+              className="rounded-lg p-4 transition-opacity hover:opacity-90 cursor-default"
               style={{ backgroundColor: '#1a1d27' }}
             >
               <p className="font-semibold text-base mb-1" style={{ color: '#f1f5f9' }}>
@@ -71,7 +71,7 @@ export default function Landing() {
         {/* Primary CTA */}
         <button
           onClick={() => navigate('/create')}
-          className="w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
+          className="w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 active:scale-[0.99]"
           style={{
             backgroundColor: '#6366f1',
             minHeight: '44px',

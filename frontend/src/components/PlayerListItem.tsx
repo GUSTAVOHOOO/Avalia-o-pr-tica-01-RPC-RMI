@@ -34,7 +34,7 @@ export default function PlayerListItem({ player, currentPlayerId }: PlayerListIt
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-opacity duration-200"
+      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-[#0f1117] cursor-default"
       style={{ backgroundColor: '#1a1d27', minHeight: '44px' }}
     >
       {/* Avatar circle */}

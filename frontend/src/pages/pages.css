@@ -54,3 +54,14 @@
 .page-hint {
   color: #6b7280;
 }
+
+/* ─── Phase 8 polish — hover states ─────────────────────────────────────── */
+/* Submit button hover (accent color kept; opacity dims slightly) */
+.page-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* Input hover — accent border color preview on hover */
+.page-input:hover:not(:disabled) {
+  border-color: #6366f1;
+}
