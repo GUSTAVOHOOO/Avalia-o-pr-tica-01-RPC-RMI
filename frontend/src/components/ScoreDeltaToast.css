@@ -1,0 +1,16 @@
+/* ScoreDeltaToast — animated per-player score delta overlay */
+/*
+ * The slideUpFade @keyframes is defined in GameScreen.css (added in Plan 08-02).
+ * This file defines the component class only; no keyframe redefinition here.
+ */
+
+.score-delta-toast {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  animation: slideUpFade 1.5s ease-out forwards;
+  font-size: 20px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 10;
+}
