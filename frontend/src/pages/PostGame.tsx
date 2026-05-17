@@ -250,7 +250,7 @@ export default function PostGame() {
               {playerIds.map((pid) => {
                 const playerTotal = finalScores.find((s) => s.player_id === pid)?.total ?? 0
                 return (
-                  <tr key={pid}>
+                  <tr key={pid} className={pid === myPlayerId ? 'postgame__table-row--mine' : ''}>
                     <td className="postgame__table-cell">{playerNamesById[pid] ?? pid}</td>
                     {turnHistory.map((t) => (
                       <td key={t.turn} className="postgame__table-cell">

@@ -247,3 +247,18 @@
   font-size: 14px;
   margin-top: 8px;
 }
+
+/* ─── Phase 8 polish ─────────────────────────────────────────────────────── */
+/* Podium card hover lift */
+.postgame__podium-card {
+  transition: transform 0.15s ease;
+}
+
+.postgame__podium-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Table row highlight for current player */
+.postgame__table-row--mine td {
+  background-color: #1a1d27;
+}

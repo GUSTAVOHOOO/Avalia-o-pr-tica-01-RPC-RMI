@@ -84,7 +84,7 @@ export default function ChatPanel({ messages, myPlayerId, onSend, disabled }: Ch
         <div ref={messagesEndRef} />
       </div>
       <label className="chat-panel__field">
-        <span className="chat-panel__label-text">Mensagem de chat</span>
+        <span className="chat-panel__label-text">Chat</span>
         <input
           type="text"
           maxLength={200}
@@ -93,7 +93,7 @@ export default function ChatPanel({ messages, myPlayerId, onSend, disabled }: Ch
           onKeyDown={handleKeyDown}
           disabled={disabled}
           aria-label="Mensagem de chat"
-          placeholder="Mensagem de chat…"
+          placeholder="Mensagem..."
           className="chat-panel__input"
         />
       </label>
