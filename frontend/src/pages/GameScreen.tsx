@@ -86,6 +86,8 @@ interface VoteStartedPayload {
 
 /* ─── Exchange/SPY types ──────────────────────────────────────────────────── */
 interface ExchangeRequest { exchange_id: string; requester_id: string }
+interface ExchangeHintPayload { from_player_id: string; hint_word: string }
+interface SpyHintPayload { from_player_id: string; hint_word: string }
 interface DeltaToast { id: string; playerName: string; delta: number }
 
 const passiveStatus: Record<string, string> = {
@@ -172,9 +174,12 @@ export default function GameScreen() {
   const [exchangeHintSubmitted, setExchangeHintSubmitted] = useState(false)
   const [exchangeTarget, setExchangeTarget] = useState('')
   const [exchangeSkipped, setExchangeSkipped] = useState(false)
+  const [exchangeReceivedHints, setExchangeReceivedHints] = useState<ExchangeHintPayload[]>([])
   const [selectedSpyTarget, setSelectedSpyTarget] = useState('')
   const [spyTargets, setSpyTargets] = useState<string[]>([])
   const [spyAttempted, setSpyAttempted] = useState(false)
+  const [spyResult, setSpyResult] = useState<'success' | 'discovered' | null>(null)
+  const [spyReceivedHints, setSpyReceivedHints] = useState<SpyHintPayload[]>([])
   // Delta toasts
   const [deltaToasts, setDeltaToasts] = useState<DeltaToast[]>([])
   // Banner
@@ -212,8 +217,11 @@ export default function GameScreen() {
         setExchangeHintSubmitted(false)
         setExchangeTarget('')
         setExchangeSkipped(false)
+        setExchangeReceivedHints([])
         setSelectedSpyTarget('')
         setSpyAttempted(false)
+        setSpyResult(null)
+        setSpyReceivedHints([])
         setDeltaToasts([])
       }
       if (data.phase === 'GUESS_PHASE' && data.hints) {
@@ -221,6 +229,10 @@ export default function GameScreen() {
       }
       if (data.phase === 'SPY_PHASE' && data.spy_targets) {
         setSpyTargets(data.spy_targets)
+        setSelectedSpyTarget('')
+        setSpyAttempted(false)
+        setSpyResult(null)
+        setSpyReceivedHints([])
       }
 
       let secs = data.remaining_seconds
@@ -358,14 +370,21 @@ export default function GameScreen() {
       setMyExchangeId(null)
       setExchangeStatus(null)
     }
-    const handleExchangeHints = () => {
+    const handleExchangeHints = (data: ExchangeHintPayload) => {
       setExchangeHintSubmitted(true)
+      setExchangeReceivedHints((prev) => [...prev, {
+        from_player_id: data.from_player_id,
+        hint_word: data.hint_word,
+      }])
     }
-    const handleSpySuccess = () => {
+    const handleSpySuccess = (data: { hints?: SpyHintPayload[] }) => {
       setSpyAttempted(true)
+      setSpyResult('success')
+      setSpyReceivedHints(data.hints ?? [])
     }
     const handleSpyDiscovered = () => {
       setSpyAttempted(true)
+      setSpyResult('discovered')
     }
 
     socket.on('phase_changed', handlePhaseChanged)
@@ -441,6 +460,7 @@ export default function GameScreen() {
       setMyExchangeId(result.exchange_id)
       setExchangeTarget('')
       setExchangeStatus('pending')
+      setExchangeReceivedHints([])
     })
   }
 
@@ -455,7 +475,10 @@ export default function GameScreen() {
     if (!exchangeRequest) return
     socket.emit('respond_exchange', { exchange_id: exchangeRequest.exchange_id, accept }, () => undefined)
     if (!accept) setExchangeRequest(null)
-    else setExchangeStatus('accepted')
+    else {
+      setExchangeStatus('accepted')
+      setExchangeReceivedHints([])
+    }
   }
 
   function submitExchangeHint() {
@@ -469,6 +492,8 @@ export default function GameScreen() {
     if (!selectedSpyTarget || spyAttempted) return
     socket.emit('attempt_spy', { exchange_id: selectedSpyTarget }, () => undefined)
     setSpyAttempted(true)
+    setSpyResult(null)
+    setSpyReceivedHints([])
   }
 
   const removeToast = (id: string) => setDeltaToasts((prev) => prev.filter((t) => t.id !== id))
@@ -550,11 +575,14 @@ export default function GameScreen() {
                   onExchangeRequest={requestExchange}
                   onExchangeSkip={skipExchange}
                   exchangeSkipped={exchangeSkipped}
+                  exchangeReceivedHints={exchangeReceivedHints}
                   spyTargets={spyTargets}
                   selectedSpyTarget={selectedSpyTarget}
                   onSpyTargetSelect={setSelectedSpyTarget}
                   onSpyAttempt={attemptSpy}
                   spyAttempted={spyAttempted}
+                  spyResult={spyResult}
+                  spyReceivedHints={spyReceivedHints}
                 />
                 {deltaToasts.map((t) => (
                   <ScoreDeltaToast key={t.id} id={t.id} delta={t.delta} playerName={t.playerName} onDone={removeToast} />

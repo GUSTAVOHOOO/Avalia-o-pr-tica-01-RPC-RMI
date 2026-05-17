@@ -75,6 +75,8 @@ class GameSession:
     turn_machine: object = dataclasses.field(default=None, repr=False)  # TurnMachine instance, set by start_game()
     accumulated_scores: dict = dataclasses.field(default_factory=dict)
     current_image_assignments: dict = dataclasses.field(default_factory=dict)
+    object_assignments: dict = dataclasses.field(default_factory=dict)
+    exchange_used_players: set = dataclasses.field(default_factory=set)
     turn_score_history: list = dataclasses.field(default_factory=list)
     # Each entry: {"turn": int, "scores": {player_id: delta}} — appended in _accumulate_scores()
     vote_record: object = dataclasses.field(default=None, repr=False)
@@ -365,7 +367,10 @@ class GameServer:
                     "current_turn": session.turn_machine.current_turn,
                 })
                 filename = None
-                object_name = session.current_image_assignments.get(player_id)
+                object_name = (
+                    session.current_image_assignments.get(player_id)
+                    or session.object_assignments.get(player_id)
+                )
                 if object_name is None and session.turn_machine.current_turn_state is not None:
                     object_name = session.turn_machine.current_turn_state.image_assignments.get(player_id)
                 if object_name is not None:
@@ -415,9 +420,11 @@ class GameServer:
 
             selected = random.sample(available, len(players))
             session.current_image_assignments.clear()
+            session.object_assignments.clear()
             for player, filename in zip(players, selected):
                 object_name = self._image_manifest[filename]
                 session.current_image_assignments[player.player_id] = object_name
+                session.object_assignments[player.player_id] = object_name
                 used.add(filename)
                 assignments.append((player.player_id, filename, object_name))
 
@@ -438,7 +445,7 @@ class GameServer:
             session = self.sessions.get(room_code)
             if session is None:
                 return {}
-            snapshot = dict(session.current_image_assignments)
+            snapshot = dict(session.current_image_assignments or session.object_assignments)
             session.current_image_assignments.clear()
             return snapshot
 
@@ -521,7 +528,11 @@ class GameServer:
             room_code_for_cb = target_session.room_code  # capture for closure
 
             def _hint_phase_cb():
-                self._assign_images_for_turn(room_code_for_cb)
+                with self.lock:
+                    session = self.sessions.get(room_code_for_cb)
+                    needs_assignment = session is not None and not session.object_assignments
+                if needs_assignment:
+                    self._assign_images_for_turn(room_code_for_cb)
                 return self._consume_image_assignments(room_code_for_cb)
 
             target_session.turn_machine = TurnMachine(
@@ -709,6 +720,10 @@ class GameServer:
                 return {"error": "turn_not_started"}
             if player_id == target_player_id:
                 return {"error": "cannot_exchange_with_self"}
+            if player_id in session.exchange_used_players:
+                return {"error": "already_used_exchange_for_object"}
+            if target_player_id in session.exchange_used_players:
+                return {"error": "target_already_exchanged_for_object"}
             if player_id in turn_state.exchange_skips:
                 return {"error": "already_skipped_exchange"}
             if target_player_id in turn_state.exchange_skips:
@@ -902,6 +917,8 @@ class GameServer:
                         "hint_word": record.requester_hint,
                     }),
                 ]
+                session.exchange_used_players.add(record.requester_id)
+                session.exchange_used_players.add(record.target_id)
                 should_advance = turn_state.exchange_phase_complete()
 
         # All broadcasts OUTSIDE the lock (Pitfall 1)
@@ -1317,6 +1334,9 @@ class GameServer:
                 session.status = "IN_PROGRESS"
                 self._used_images_this_game.pop(room_code, None)  # fresh image pool
                 session.accumulated_scores.clear()
+                session.object_assignments.clear()
+                session.current_image_assignments.clear()
+                session.exchange_used_players.clear()
                 session.turn_score_history.clear()
                 player_ids = [p.player_id for p in session.players]
                 max_turns = session.max_turns
@@ -1353,7 +1373,14 @@ class GameServer:
                     room_code_for_cb = room_code
 
                     def _hint_phase_cb():
-                        self._assign_images_for_turn(room_code_for_cb)
+                        with self.lock:
+                            current_session = self.sessions.get(room_code_for_cb)
+                            needs_assignment = (
+                                current_session is not None
+                                and not current_session.object_assignments
+                            )
+                        if needs_assignment:
+                            self._assign_images_for_turn(room_code_for_cb)
                         return self._consume_image_assignments(room_code_for_cb)
 
                     session.turn_machine = TurnMachine(

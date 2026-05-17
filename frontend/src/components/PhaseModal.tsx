@@ -14,6 +14,11 @@ interface ExchangeRequest {
   requester_id: string
 }
 
+interface PrivateHint {
+  from_player_id: string
+  hint_word: string
+}
+
 interface PhaseModalProps {
   phase: string
   players: Player[]
@@ -50,12 +55,15 @@ interface PhaseModalProps {
   onExchangeRequest: () => void
   onExchangeSkip: () => void
   exchangeSkipped: boolean
+  exchangeReceivedHints: PrivateHint[]
   // SPY
   spyTargets: string[]                      // list of exchange_ids (opaque strings)
   selectedSpyTarget: string
   onSpyTargetSelect: (id: string) => void
   onSpyAttempt: () => void
   spyAttempted: boolean
+  spyResult: 'success' | 'discovered' | null
+  spyReceivedHints: PrivateHint[]
 }
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
@@ -73,6 +81,29 @@ const PHASE_TITLES: Record<string, string> = {
 
 function playerName(players: Player[], playerId: string): string {
   return players.find((p) => p.player_id === playerId)?.player_name ?? playerId
+}
+
+function PrivateHintList({
+  hints,
+  players,
+}: {
+  hints: PrivateHint[]
+  players: Player[]
+}) {
+  if (hints.length === 0) return null
+
+  return (
+    <div className="phase-modal-private-hints" aria-live="polite">
+      <span className="panel-label-text">Dicas recebidas:</span>
+      <div className="hint-chips">
+        {hints.map((hint, index) => (
+          <span key={`${hint.from_player_id}-${index}`} className="hint-chip">
+            {playerName(players, hint.from_player_id)}: {hint.hint_word || '-'}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 /* ─── Phase variant sub-components ──────────────────────────────────────── */
@@ -271,6 +302,7 @@ interface ExchangeVariantProps {
   onExchangeRequest: () => void
   onExchangeSkip: () => void
   exchangeSkipped: boolean
+  exchangeReceivedHints: PrivateHint[]
 }
 
 function ExchangeVariant({
@@ -290,6 +322,7 @@ function ExchangeVariant({
   onExchangeRequest,
   onExchangeSkip,
   exchangeSkipped,
+  exchangeReceivedHints,
 }: ExchangeVariantProps) {
   const isRequester = myExchangeId !== null
   const otherPlayers = players.filter((p) => p.player_id !== myPlayerId)
@@ -304,6 +337,7 @@ function ExchangeVariant({
     return (
       <>
         <p className="phase-modal-status-text">Troca aceita! Envie sua dica privada.</p>
+        <PrivateHintList hints={exchangeReceivedHints} players={players} />
         <label className="panel-field">
           <span className="panel-label-text">Dica privada</span>
           <input
@@ -335,18 +369,23 @@ function ExchangeVariant({
     return (
       <>
         <p className="phase-modal-status-text">
-          {requesterDisplayName} quer trocar dicas com você.
+          {exchangeStatus === 'accepted'
+            ? `Troca aceita com ${requesterDisplayName}. Envie sua dica privada.`
+            : `${requesterDisplayName} quer trocar dicas com você.`}
         </p>
-        <div className="panel-btn-row">
-          <button type="button" onClick={onExchangeAccept} className="panel-btn-primary panel-btn-primary--flex">
-            Aceitar
-          </button>
-          <button type="button" onClick={onExchangeDecline} className="panel-btn-skip">
-            Recusar
-          </button>
-        </div>
+        {exchangeStatus !== 'accepted' && (
+          <div className="panel-btn-row">
+            <button type="button" onClick={onExchangeAccept} className="panel-btn-primary panel-btn-primary--flex">
+              Aceitar
+            </button>
+            <button type="button" onClick={onExchangeDecline} className="panel-btn-skip">
+              Recusar
+            </button>
+          </div>
+        )}
         {exchangeStatus === 'accepted' && (
           <>
+            <PrivateHintList hints={exchangeReceivedHints} players={players} />
             <label className="panel-field">
               <span className="panel-label-text">Dica privada</span>
               <input
@@ -422,6 +461,9 @@ interface SpyVariantProps {
   onSpyTargetSelect: (id: string) => void
   onSpyAttempt: () => void
   spyAttempted: boolean
+  spyResult: 'success' | 'discovered' | null
+  spyReceivedHints: PrivateHint[]
+  players: Player[]
 }
 
 function SpyVariant({
@@ -430,6 +472,9 @@ function SpyVariant({
   onSpyTargetSelect,
   onSpyAttempt,
   spyAttempted,
+  spyResult,
+  spyReceivedHints,
+  players,
 }: SpyVariantProps) {
   if (spyTargets.length === 0) {
     return (
@@ -464,8 +509,16 @@ function SpyVariant({
         disabled={!selectedSpyTarget || spyAttempted}
         className="panel-btn-skip"
       >
-        Espiar
+        {spyAttempted ? 'Espionagem realizada' : 'Espiar'}
       </button>
+      {spyResult === 'success' && (
+        <PrivateHintList hints={spyReceivedHints} players={players} />
+      )}
+      {spyResult === 'discovered' && (
+        <p aria-live="polite" className="phase-modal-risk-text">
+          Você foi descoberto e perdeu 10 pontos.
+        </p>
+      )}
     </>
   )
 }
@@ -506,11 +559,14 @@ export default function PhaseModal(props: PhaseModalProps) {
     onExchangeRequest,
     onExchangeSkip,
     exchangeSkipped,
+    exchangeReceivedHints,
     spyTargets,
     selectedSpyTarget,
     onSpyTargetSelect,
     onSpyAttempt,
     spyAttempted,
+    spyResult,
+    spyReceivedHints,
   } = props
 
   // Return null for all non-action phases (SCORING_PHASE, ROUND_START, TURN_END, etc.)
@@ -568,6 +624,7 @@ export default function PhaseModal(props: PhaseModalProps) {
           onExchangeRequest={onExchangeRequest}
           onExchangeSkip={onExchangeSkip}
           exchangeSkipped={exchangeSkipped}
+          exchangeReceivedHints={exchangeReceivedHints}
         />
       )}
 
@@ -578,6 +635,9 @@ export default function PhaseModal(props: PhaseModalProps) {
           onSpyTargetSelect={onSpyTargetSelect}
           onSpyAttempt={onSpyAttempt}
           spyAttempted={spyAttempted}
+          spyResult={spyResult}
+          spyReceivedHints={spyReceivedHints}
+          players={players}
         />
       )}
     </div>

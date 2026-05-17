@@ -230,6 +230,22 @@ def test_object_assigned_payload():
     )
 
 
+def test_object_assignment_reused_across_turns():
+    """IMAGE-03: the same object assignment is reused until the game restarts."""
+    server = GameServer()
+    host = server.create_game("Alice", "PYRO:fake.alice@127.0.0.1:9999", 3)
+    server.join_game("Bob", "PYRO:fake.bob@127.0.0.1:9999", host["room_code"])
+    server.broadcaster = FakeBroadcaster()
+
+    server._assign_images_for_turn(host["room_code"])
+    first_turn = server._consume_image_assignments(host["room_code"])
+    second_turn = server._consume_image_assignments(host["room_code"])
+
+    assert second_turn == first_turn, (
+        f"object assignments should persist across turns, got {first_turn} then {second_turn}"
+    )
+
+
 def test_get_player_view_returns_current_object_assignment():
     """IMAGE-02: reconnecting GameScreen can recover its private object assignment."""
     server, session, player_id, _other_id = _server_with_turn_state("HINT_PHASE")

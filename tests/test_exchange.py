@@ -198,6 +198,26 @@ def test_exchange_one_per_turn():
     )
 
 
+def test_exchange_one_per_object():
+    """EXCHANGE-06: a completed exchange consumes both players' exchange for the object."""
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+
+    session.turn_machine.current_phase = "EXCHANGE_PHASE"
+    session.turn_machine.current_turn_state = TurnState(
+        turn_number=2,
+        player_ids=[alice_id, bob_id, charlie_id],
+        image_assignments=session.turn_machine.current_turn_state.image_assignments,
+    )
+
+    result = server.request_exchange(alice_id, charlie_id)
+
+    assert result == {"error": "already_used_exchange_for_object"}, (
+        f"Expected already_used_exchange_for_object error, got {result}"
+    )
+
+
 def test_skip_exchange_records_choice():
     """EXCHANGE-07: skip_exchange() marks a player as unavailable for private exchanges."""
     server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
