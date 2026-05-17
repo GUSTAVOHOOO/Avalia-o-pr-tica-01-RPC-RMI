@@ -205,10 +205,10 @@ Plans:
 
 **Wave 1** *(parallel — no interdependencies)*
 
-- [ ] 08-01-PLAN.md — docs/ scaffold: Makefile (mmdc + pandoc pipeline), relatorio.md full content (4 sections, Portuguese), 3 Mermaid diagram sources (REPORT-01, REPORT-02, REPORT-03, REPORT-04)
-- [ ] 08-02-PLAN.md — CountdownDisplay color logic (timerColor, 3 states), ReconnectionBanner component + CSS, GameScreen.css keyframes (slideInFromBottom, slideUpFade) (UI-05, UI-09)
-- [ ] 08-03-PLAN.md — PhaseModal.tsx all 5 variants (HINT, GUESS, EXCHANGE-requester, EXCHANGE-recipient, SPY) + PhaseModal.css (UI-06)
-- [ ] 08-04-PLAN.md — ScoreDeltaToast.tsx + ScoreDeltaToast.css (UI-07)
+- [x] 08-01-PLAN.md — docs/ scaffold: Makefile (mmdc + pandoc pipeline), relatorio.md full content (4 sections, Portuguese), 3 Mermaid diagram sources (REPORT-01, REPORT-02, REPORT-03, REPORT-04)
+- [x] 08-02-PLAN.md — CountdownDisplay color logic (timerColor, 3 states), ReconnectionBanner component + CSS, GameScreen.css keyframes (slideInFromBottom, slideUpFade) (UI-05, UI-09)
+- [x] 08-03-PLAN.md — PhaseModal.tsx all 5 variants (HINT, GUESS, EXCHANGE-requester, EXCHANGE-recipient, SPY) + PhaseModal.css (UI-06)
+- [x] 08-04-PLAN.md — ScoreDeltaToast.tsx + ScoreDeltaToast.css (UI-07)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -231,4 +231,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
 | 6. Synonym Arbitration | 3/3 | Complete   | 2026-05-15 |
 | 7. Reconnection + End-of-Game | 4/4 | Complete   | 2026-05-16 |
-| 8. UI Polish + Technical Report | 0/6 | Not started | - |
+| 8. UI Polish + Technical Report | 4/6 | In Progress|  |
