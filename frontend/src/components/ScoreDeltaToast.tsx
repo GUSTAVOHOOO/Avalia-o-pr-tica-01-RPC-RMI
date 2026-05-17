@@ -8,7 +8,7 @@ interface ScoreDeltaToastProps {
 }
 
 export default function ScoreDeltaToast({ id, delta, playerName, onDone }: ScoreDeltaToastProps) {
-  const color = delta > 0 ? '#22c55e' : delta < 0 ? '#ef4444' : '#6b7280'
+  const color = delta > 0 ? 'var(--color-success)' : delta < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)'
   const label = delta > 0 ? `+${delta}` : `${delta}`
 
   return (

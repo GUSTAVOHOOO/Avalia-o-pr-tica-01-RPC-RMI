@@ -38,6 +38,10 @@ PHASE_DURATIONS = {
     "TURN_END":       5,
 }
 
+# When all required player actions are done before the phase timer ends, keep a
+# short visible countdown instead of advancing instantly.
+PHASE_COMPLETION_GRACE_SECONDS = 5
+
 # Wu-Palmer similarity threshold for synonym arbitration (D-01).
 # 0.7 accepts near-synonyms (e.g., bicicleta ~ bike = ~0.9); tune here, never in arbitration.py.
 WU_PALMER_THRESHOLD = 0.7

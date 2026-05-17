@@ -1,16 +1,133 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+
+    --color-bg: #0b0f1a;
+    --color-bg-elevated: #111827;
+    --color-surface: #182033;
+    --color-surface-soft: #202a3f;
+    --color-surface-strong: #27324a;
+    --color-border: #334155;
+    --color-border-strong: #475569;
+
+    --color-text: #f8fafc;
+    --color-text-muted: #cbd5e1;
+    --color-text-subtle: #94a3b8;
+    --color-text-inverse: #020617;
+
+    --color-accent: #818cf8;
+    --color-accent-strong: #6366f1;
+    --color-accent-soft: rgba(129, 140, 248, 0.16);
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-danger: #f87171;
+    --color-danger-strong: #ef4444;
+    --color-info: #38bdf8;
+    --color-avatar-pink: #ec4899;
+    --color-avatar-teal: #14b8a6;
+    --color-avatar-orange: #f97316;
+
+    --phase-start: #818cf8;
+    --phase-hint: #38bdf8;
+    --phase-guess: #22c55e;
+    --phase-exchange: #c084fc;
+    --phase-spy: #f59e0b;
+    --phase-scoring: #facc15;
+    --phase-ended: #94a3b8;
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --shadow-card: 0 16px 40px rgba(2, 6, 23, 0.22);
+    --shadow-popover: 0 20px 60px rgba(2, 6, 23, 0.36);
+    --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.42);
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+
+    --z-banner: 40;
+    --z-toast: 50;
+    --z-modal: 60;
+
+    /* ─── Escala tipográfica modular (12 14 16 18 20 24 32) ───────────────── */
+    --text-xs:   12px;
+    --text-sm:   14px;
+    --text-base: 16px;
+    --text-lg:   18px;
+    --text-xl:   20px;
+    --text-2xl:  24px;
+    --text-3xl:  32px;
+
+    --font-body:    'Poppins', Inter, system-ui, -apple-system, sans-serif;
+    --font-heading: 'Righteous', 'Poppins', system-ui, sans-serif;
+  }
+
   html {
-    font-family: Inter, system-ui, -apple-system, sans-serif;
-    background-color: #0f1117;
-    color: #f1f5f9;
+    /* Poppins body + Righteous para headings de jogo */
+    font-family: 'Poppins', Inter, system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  /* Headings principais usam Righteous para identidade de jogo */
+  h1, h2, h3 {
+    font-family: 'Righteous', 'Poppins', system-ui, sans-serif;
+  }
+
+  body {
+    min-width: 320px;
+    margin: 0;
+    background:
+      radial-gradient(circle at top left, rgba(129, 140, 248, 0.10), transparent 34rem),
+      var(--color-bg);
+    color: var(--color-text);
+    overflow-x: hidden;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  button {
+    touch-action: manipulation;
   }
 
   *:focus-visible {
-    outline: 2px solid #6366f1;
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+    box-shadow: var(--focus-ring);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-soft);
+    color: var(--color-text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

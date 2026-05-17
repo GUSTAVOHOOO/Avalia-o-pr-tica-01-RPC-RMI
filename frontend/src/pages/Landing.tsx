@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import './pages.css'
 
 export default function Landing() {
   const navigate = useNavigate()
@@ -14,34 +15,27 @@ export default function Landing() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 pt-16"
-      style={{ backgroundColor: '#0f1117' }}
-    >
+    <div className="landing min-h-screen flex flex-col items-center justify-start px-4 pt-16">
       {/* Header */}
-      <header className="w-full max-w-[640px] flex justify-between items-center mb-16">
-        <span className="text-xl font-semibold" style={{ color: '#f1f5f9' }}>
+      <header className="landing__header w-full max-w-[640px] flex justify-between items-center mb-16">
+        <span className="landing__brand text-xl font-semibold">
           Adivinha Aí
         </span>
         <a
           href="#regras"
-          className="text-sm underline"
-          style={{ color: '#6b7280' }}
+          className="landing__link text-sm underline"
         >
           Regras
         </a>
       </header>
 
       {/* Hero */}
-      <main className="w-full max-w-[640px] flex flex-col items-center gap-6 mb-12">
+      <main className="landing__main w-full max-w-[640px] flex flex-col items-center gap-6 mb-12">
         <div className="text-center">
-          <h1
-            className="text-3xl font-semibold mb-3"
-            style={{ color: '#f1f5f9', fontSize: '28px', lineHeight: '1.1' }}
-          >
+          <h1 className="landing__title text-3xl font-semibold mb-3">
             Jogo de Adivinhação Multijogador
           </h1>
-          <p className="text-base" style={{ color: '#6b7280' }}>
+          <p className="landing__subtitle text-base">
             Cada jogador recebe uma imagem secreta. Envie dicas, adivinhe os objetos dos outros e blefe para vencer.
           </p>
         </div>
@@ -53,15 +47,11 @@ export default function Landing() {
             { title: 'Trocas privadas', desc: 'Negocie dicas em segredo com outros jogadores.' },
             { title: 'Espionagem', desc: 'Tente descobrir as dicas alheias — mas cuidado com as penalidades!' },
           ].map((card) => (
-            <div
-              key={card.title}
-              className="rounded-lg p-4 transition-opacity hover:opacity-90 cursor-default"
-              style={{ backgroundColor: '#1a1d27' }}
-            >
-              <p className="font-semibold text-base mb-1" style={{ color: '#f1f5f9' }}>
+            <div key={card.title} className="landing__feature-card rounded-lg p-4 transition-opacity hover:opacity-90 cursor-default">
+              <p className="landing__feature-title font-semibold text-base mb-1">
                 {card.title}
               </p>
-              <p className="text-sm" style={{ color: '#6b7280' }}>
+              <p className="landing__feature-desc text-sm">
                 {card.desc}
               </p>
             </div>
@@ -71,46 +61,30 @@ export default function Landing() {
         {/* Primary CTA */}
         <button
           onClick={() => navigate('/create')}
-          className="w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 active:scale-[0.99]"
-          style={{
-            backgroundColor: '#6366f1',
-            minHeight: '44px',
-            fontSize: '16px',
-          }}
+          className="landing__primary-btn w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 active:scale-[0.99]"
         >
           Criar Partida
         </button>
 
         {/* Secondary: enter by code */}
         <div className="w-full">
-          <p className="text-sm text-center mb-3" style={{ color: '#6b7280' }}>
+          <p className="landing__divider text-sm text-center mb-3">
             — ou entre numa partida existente —
           </p>
-          <form onSubmit={handleEnterByCode} className="flex gap-2">
+          <form onSubmit={handleEnterByCode} className="landing__code-form flex gap-2">
             <input
               type="text"
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, 6))}
               placeholder="CÓDIGO (6 letras)"
               maxLength={6}
-              className="flex-1 rounded-lg px-3 py-2 font-mono text-sm uppercase"
-              style={{
-                backgroundColor: '#1a1d27',
-                color: '#f1f5f9',
-                border: '1px solid #2d3148',
-                minHeight: '44px',
-              }}
+              className="landing__code-input flex-1 rounded-lg px-3 py-2 font-mono text-sm uppercase"
               aria-label="Código da partida"
             />
             <button
               type="submit"
               disabled={roomCode.length !== 6}
-              className="px-5 rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
-              style={{
-                backgroundColor: '#6366f1',
-                minHeight: '44px',
-                fontSize: '16px',
-              }}
+              className="landing__code-submit px-5 rounded-lg font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
             >
               Entrar
             </button>
@@ -122,8 +96,7 @@ export default function Landing() {
       <footer className="mt-auto pb-8">
         <a
           href="#regras"
-          className="text-sm underline"
-          style={{ color: '#6b7280' }}
+          className="landing__link text-sm underline"
         >
           Ver regras completas
         </a>

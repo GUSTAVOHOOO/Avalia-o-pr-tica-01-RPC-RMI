@@ -1,10 +1,11 @@
 /* ─── Chat Panel ─────────────────────────────────────────────────────────── */
 /* D-04: visually distinct from game action panels — muted-gray left border  */
 .chat-panel {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-left: 3px solid #6b7280; /* muted gray — NOT a phase accent color */
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-text-subtle); /* muted gray — NOT a phase accent color */
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -17,7 +18,7 @@
 }
 
 .chat-panel__title {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 16px;
   font-weight: 600;
   margin: 0;
@@ -40,7 +41,7 @@
   align-items: baseline;
   gap: 6px;
   padding: 4px 0;
-  border-bottom: 1px solid #2d3148;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .chat-panel__message:last-child {
@@ -48,25 +49,25 @@
 }
 
 .chat-panel__message--mine .chat-panel__message-name {
-  color: #6366f1;
+  color: var(--color-accent);
 }
 
 .chat-panel__message-name {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .chat-panel__message-text {
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 14px;
   flex: 1;
   word-break: break-word;
 }
 
 .chat-panel__message-time {
-  color: #6b7280;
+  color: var(--color-text-subtle);
   font-size: 14px;
   flex-shrink: 0;
   margin-left: auto;
@@ -74,7 +75,7 @@
 
 /* Empty state */
 .chat-panel__empty {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   text-align: center;
   margin: 0;
@@ -89,20 +90,20 @@
 }
 
 .chat-panel__label-text {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
 }
 
-/* D-04: distinct border color (#4b5563) vs game action inputs (#2d3148) */
+/* D-04: distinct border color vs game action inputs */
 .chat-panel__input {
-  background-color: #0f1117;
-  border: 1px solid #4b5563;
-  border-radius: 8px;
-  color: #f1f5f9;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
   font-size: 16px;
-  height: 40px;
+  min-height: 44px;
   padding: 8px 12px;
   width: 100%;
   box-sizing: border-box;
@@ -113,27 +114,32 @@
 }
 
 .chat-panel__input:focus {
-  outline: 2px solid #6366f1;
-  outline-offset: 1px;
+  border-color: var(--color-accent);
+  outline: none;
 }
 
 /* D-04: submit button uses accent bg but distinct label "Enviar mensagem" */
 .chat-panel__submit {
-  background-color: #6366f1;
-  border: 1px solid #6366f1;
-  border-radius: 8px;
-  color: #f1f5f9;
+  background-color: var(--color-accent-strong);
+  border: 1px solid var(--color-accent-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
   min-height: 44px;
   width: 100%;
+  transition: opacity 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.chat-panel__submit:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .chat-panel__submit:disabled {
-  background-color: #1a1d27;
-  border-color: #2d3148;
-  color: #6b7280;
+  background-color: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-subtle);
   cursor: not-allowed;
   font-weight: 400;
   opacity: 0.75;

@@ -1,9 +1,12 @@
 """Unit tests for Phase 5 exchange and spy mechanics."""
 
+import time
+
+import config
 import pytest
 from server.game_server import GameServer
 from server.turn_machine import TurnMachine
-from server.turn_state import TurnState
+from server.turn_state import ExchangeRecord, TurnState
 
 
 class FakeBroadcaster:
@@ -40,6 +43,7 @@ def _server_with_exchange_state(phase="EXCHANGE_PHASE"):
         player_ids=player_ids,
     )
     session.turn_machine.current_phase = phase
+    session.turn_machine._phase_start_time = time.monotonic()
     session.turn_machine.current_turn_state = TurnState(
         turn_number=1,
         player_ids=player_ids,
@@ -204,17 +208,25 @@ def test_skip_exchange_records_choice():
     assert alice_id in session.turn_machine.current_turn_state.exchange_skips
 
 
-def test_exchange_phase_auto_advances_when_no_pair_available():
-    """EXCHANGE-08: phase advances when everyone has exchanged or skipped."""
+def test_exchange_phase_shortens_timer_when_no_pair_available():
+    """EXCHANGE-08: phase shortens timer when everyone has exchanged or skipped."""
+    original_grace = config.PHASE_COMPLETION_GRACE_SECONDS
+    config.PHASE_COMPLETION_GRACE_SECONDS = 0.05
     server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
 
-    # Complete the accepted Alice/Bob exchange. Charlie is the only player left, so no new pair remains.
-    server.submit_exchange_hint(alice_id, exchange_id, "round")
-    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+    try:
+        # Complete the accepted Alice/Bob exchange. Charlie is the only player left, so no new pair remains.
+        server.submit_exchange_hint(alice_id, exchange_id, "round")
+        server.submit_exchange_hint(bob_id, exchange_id, "wheels")
 
-    assert session.turn_machine.current_phase == "SPY_PHASE", (
-        f"completed exchange with an eligible spy should advance to SPY_PHASE, got {session.turn_machine.current_phase}"
-    )
+        assert session.turn_machine.current_phase == "EXCHANGE_PHASE"
+        assert server.broadcaster.events[-1]["type"] == "phase_timer_shortened"
+        time.sleep(0.12)
+        assert session.turn_machine.current_phase == "SPY_PHASE", (
+            f"completed exchange with an eligible spy should advance to SPY_PHASE after grace timer, got {session.turn_machine.current_phase}"
+        )
+    finally:
+        config.PHASE_COMPLETION_GRACE_SECONDS = original_grace
 
 
 def test_spy_phase_skipped_when_no_exchanges():
@@ -234,6 +246,7 @@ def test_spy_phase_entered_when_exchange_exists():
     _server, session, _alice, _bob, _charlie = _server_with_exchange_state("EXCHANGE_PHASE")
     tm = session.turn_machine
     # Simulate a completed exchange
+    tm.current_turn_state.exchanges["abc12345"] = ExchangeRecord("p1", "p2", status="completed")
     tm.current_turn_state.completed_exchanges.append("abc12345")
     result = tm._compute_next("EXCHANGE_PHASE")
     assert result == "SPY_PHASE", (
@@ -256,15 +269,23 @@ def test_spy_phase_skipped_when_no_eligible_spy():
         player_ids=player_ids,
     )
     session.turn_machine.current_phase = "EXCHANGE_PHASE"
+    session.turn_machine._phase_start_time = time.monotonic()
     session.turn_machine.current_turn_state = TurnState(turn_number=1, player_ids=player_ids)
     req = server.request_exchange(host["player_id"], join["player_id"])
-    server.respond_exchange(join["player_id"], req["exchange_id"], True)
-    server.submit_exchange_hint(host["player_id"], req["exchange_id"], "round")
-    server.submit_exchange_hint(join["player_id"], req["exchange_id"], "wheels")
+    original_grace = config.PHASE_COMPLETION_GRACE_SECONDS
+    config.PHASE_COMPLETION_GRACE_SECONDS = 0.05
+    try:
+        server.respond_exchange(join["player_id"], req["exchange_id"], True)
+        server.submit_exchange_hint(host["player_id"], req["exchange_id"], "round")
+        server.submit_exchange_hint(join["player_id"], req["exchange_id"], "wheels")
 
-    assert session.turn_machine.current_phase == "SCORING_PHASE", (
-        f"two-player exchange should skip SPY_PHASE, got {session.turn_machine.current_phase}"
-    )
+        assert session.turn_machine.current_phase == "EXCHANGE_PHASE"
+        time.sleep(0.12)
+        assert session.turn_machine.current_phase == "SCORING_PHASE", (
+            f"two-player exchange should skip SPY_PHASE after grace timer, got {session.turn_machine.current_phase}"
+        )
+    finally:
+        config.PHASE_COMPLETION_GRACE_SECONDS = original_grace
 
 
 def _setup_spy_state():
@@ -277,6 +298,7 @@ def _setup_spy_state():
     server.submit_exchange_hint(bob_id, exchange_id, "wheels")
     # Move to SPY_PHASE
     session.turn_machine.current_phase = "SPY_PHASE"
+    session.turn_machine._phase_start_time = time.monotonic()
     server.broadcaster.events.clear()
     return server, session, alice_id, bob_id, charlie_id, exchange_id
 
@@ -357,12 +379,20 @@ def test_spy_one_per_turn():
     )
 
 
-def test_spy_phase_auto_advances_after_all_eligible_attempt():
-    """SPY-06: when the only eligible spy attempts, phase advances to SCORING_PHASE."""
+def test_spy_phase_shortens_timer_after_all_eligible_attempt():
+    """SPY-06: when the only eligible spy attempts, phase shortens timer."""
+    original_grace = config.PHASE_COMPLETION_GRACE_SECONDS
+    config.PHASE_COMPLETION_GRACE_SECONDS = 0.05
     server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
 
-    server.attempt_spy(charlie_id, exchange_id)
+    try:
+        server.attempt_spy(charlie_id, exchange_id)
 
-    assert session.turn_machine.current_phase == "SCORING_PHASE", (
-        f"all eligible spy attempts should auto-advance to SCORING_PHASE, got {session.turn_machine.current_phase}"
-    )
+        assert session.turn_machine.current_phase == "SPY_PHASE"
+        assert server.broadcaster.events[-1]["type"] == "phase_timer_shortened"
+        time.sleep(0.12)
+        assert session.turn_machine.current_phase == "SCORING_PHASE", (
+            f"all eligible spy attempts should advance to SCORING_PHASE after grace timer, got {session.turn_machine.current_phase}"
+        )
+    finally:
+        config.PHASE_COMPLETION_GRACE_SECONDS = original_grace

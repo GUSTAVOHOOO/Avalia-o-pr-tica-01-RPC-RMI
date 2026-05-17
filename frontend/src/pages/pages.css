@@ -1,58 +1,69 @@
 /* ─── Shared page layout ─────────────────────────────────────────────────── */
 .page-root {
-  background-color: #0f1117;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 /* Back button */
 .page-back-btn {
-  color: #6b7280;
+  color: var(--color-text-muted);
+  min-height: 44px;
+  padding: 0;
 }
 
 /* Page title */
 .page-title {
-  color: #f1f5f9;
-  font-size: 20px;
+  color: var(--color-text);
+  font-size: 24px;
   line-height: 1.2;
 }
 
 /* Form card */
 .page-form-card {
-  background-color: #1a1d27;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
 /* Form field labels */
 .page-field-label {
-  color: #f1f5f9;
+  color: var(--color-text);
 }
 
 /* Text inputs and selects */
 .page-input {
-  background-color: #0f1117;
-  color: #f1f5f9;
-  border: 1px solid #2d3148;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   min-height: 44px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
 .page-input:focus {
-  border-color: #6366f1;
+  border-color: var(--color-accent);
   outline: none;
 }
 
 /* Primary submit button */
 .page-submit-btn {
-  background-color: #6366f1;
+  background-color: var(--color-accent-strong);
   min-height: 44px;
   font-size: 16px;
+  transition: opacity 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.page-submit-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 /* Inline error text */
 .page-error {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 /* Hint / helper text */
 .page-hint {
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 /* ─── Phase 8 polish — hover states ─────────────────────────────────────── */
@@ -63,5 +74,112 @@
 
 /* Input hover — accent border color preview on hover */
 .page-input:hover:not(:disabled) {
-  border-color: #6366f1;
+  border-color: var(--color-accent);
+}
+
+@media (max-width: 480px) {
+  .page-form-card {
+    padding: 20px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+}
+
+/* ─── Landing ───────────────────────────────────────────────────────────── */
+.landing {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.landing__header {
+  min-height: 44px;
+}
+
+.landing__header,
+.landing__main {
+  box-sizing: border-box;
+  max-width: 640px;
+  width: 100%;
+}
+
+.landing__brand,
+.landing__title,
+.landing__feature-title {
+  color: var(--color-text);
+}
+
+.landing__title {
+  font-size: clamp(30px, 6vw, 44px);
+  line-height: 1.05;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.landing__subtitle,
+.landing__feature-desc,
+.landing__divider,
+.landing__link {
+  color: var(--color-text-muted);
+}
+
+.landing__subtitle {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.landing__feature-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-sizing: border-box;
+  box-shadow: var(--shadow-card);
+  width: 100%;
+}
+
+.landing__primary-btn,
+.landing__code-submit {
+  background-color: var(--color-accent-strong);
+  min-height: 44px;
+  font-size: 16px;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.landing__primary-btn:active:not(:disabled),
+.landing__code-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.landing__code-input {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  min-height: 44px;
+  min-width: 0;
+}
+
+.landing__code-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+@media (max-width: 480px) {
+  .landing {
+    padding-top: 40px;
+  }
+
+  .landing__header {
+    margin-bottom: 40px;
+  }
+
+  .landing__code-form {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .landing__header,
+  .landing__main {
+    max-width: 343px;
+  }
 }

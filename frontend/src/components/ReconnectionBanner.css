@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: var(--z-banner);
   min-height: 40px;
   padding: 8px 16px;
   display: flex;
@@ -15,11 +15,11 @@
 }
 
 .reconnection-banner--amber {
-  background-color: #92400e;
-  color: #fef3c7;
+  background-color: color-mix(in srgb, var(--color-warning) 60%, var(--color-bg));
+  color: var(--color-text);
 }
 
 .reconnection-banner--red {
-  background-color: #7f1d1d;
-  color: #fee2e2;
+  background-color: color-mix(in srgb, var(--color-danger-strong) 60%, var(--color-bg));
+  color: var(--color-text);
 }

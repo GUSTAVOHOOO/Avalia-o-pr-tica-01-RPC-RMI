@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import socket from '../socket'
 import PlayerListItem from '../components/PlayerListItem'
+import './Lobby.css'
 
 interface Player {
   player_id: string
@@ -128,24 +129,13 @@ export default function Lobby() {
   const canStart = isHost && players.length >= 2 && !gameStarting
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 pt-8"
-      style={{ backgroundColor: '#0f1117' }}
-    >
+    <div className="lobby-root min-h-screen flex flex-col items-center justify-start px-4 pt-8">
       {/* Toast container */}
       <div className="fixed top-4 right-4 flex flex-col gap-2 z-50">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="px-4 py-2 rounded-lg text-sm text-white shadow-lg transition-opacity"
-            style={{
-              backgroundColor:
-                toast.variant === 'success'
-                  ? '#22c55e'
-                  : toast.variant === 'error'
-                  ? '#ef4444'
-                  : '#1a1d27',
-            }}
+            className={`px-4 py-2 rounded-lg text-sm text-white shadow-lg transition-opacity lobby-toast--${toast.variant}`}
           >
             {toast.message}
           </div>
@@ -155,55 +145,35 @@ export default function Lobby() {
       <div className="w-full max-w-[480px] flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1
-            className="font-semibold"
-            style={{ color: '#f1f5f9', fontSize: '20px', lineHeight: '1.2' }}
-          >
+          <h1 className="lobby-title font-semibold">
             Sala de Espera
           </h1>
-          <span
-            className="px-3 py-1 rounded-full text-xs font-mono font-semibold"
-            style={{ backgroundColor: '#1a1d27', color: '#6b7280' }}
-          >
+          <span className="lobby-session-badge px-3 py-1 rounded-full text-xs font-mono font-semibold">
             {sessionId}
           </span>
         </div>
 
         {/* Room code display + copy */}
-        <div
-          className="rounded-xl p-6 flex flex-col items-center gap-4"
-          style={{ backgroundColor: '#1a1d27' }}
-        >
-          <p className="text-sm" style={{ color: '#6b7280' }}>
+        <div className="lobby-code-card rounded-xl p-6 flex flex-col items-center gap-4">
+          <p className="lobby-code-hint text-sm">
             Compartilhe o código para convidar jogadores
           </p>
           <div
-            className="font-mono font-semibold tracking-widest text-center"
-            style={{
-              fontSize: '28px',
-              lineHeight: '1.1',
-              color: '#f1f5f9',
-            }}
+            className="lobby-code-display font-mono font-semibold tracking-widest text-center"
             aria-label={`Código da sala: ${sessionId}`}
           >
             {sessionId}
           </div>
           <button
             onClick={handleCopyLink}
-            className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{
-              backgroundColor: copySuccess ? '#22c55e' : '#0f1117',
-              color: '#f1f5f9',
-              minHeight: '36px',
-              border: '1px solid #2d3148',
-            }}
+            className={`lobby-copy-btn px-4 py-2 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80 ${copySuccess ? 'lobby-copy-btn--copied' : 'lobby-copy-btn--default'}`}
           >
             {copySuccess ? 'Link copiado!' : 'Copiar Link'}
           </button>
         </div>
 
         {/* Player count indicator */}
-        <p className="text-sm text-center" style={{ color: '#6b7280' }}>
+        <p className="lobby-player-count text-sm text-center">
           {players.length}/6 jogadores —{' '}
           {players.length >= 2 ? 'mínimo atingido' : 'aguardando mais'}
         </p>
@@ -211,15 +181,14 @@ export default function Lobby() {
         {/* Player list */}
         <div className="flex flex-col gap-2">
           {players.length === 0 ? (
-            <p className="text-sm text-center py-4" style={{ color: '#6b7280' }}>
+            <p className="lobby-waiting-text text-sm text-center py-4">
               Aguardando outros jogadores...
             </p>
           ) : (
             players.map((player) => (
               <div
                 key={player.player_id}
-                className="opacity-0 animate-[fadeIn_200ms_ease-out_forwards]"
-                style={{ animation: 'fadeIn 200ms ease-out forwards' }}
+                className="lobby-player-item opacity-0 animate-[fadeIn_200ms_ease-out_forwards]"
               >
                 <PlayerListItem player={player} currentPlayerId={playerId} />
               </div>
@@ -235,14 +204,9 @@ export default function Lobby() {
               <button
                 onClick={handleStartGame}
                 disabled={!canStart}
-                aria-disabled={!canStart}
+                aria-disabled={!canStart ? 'true' : 'false'}
                 title={players.length < 2 ? 'Aguardando pelo menos 2 jogadores' : undefined}
-                className="w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: '#6366f1',
-                  minHeight: '44px',
-                  fontSize: '16px',
-                }}
+                className="lobby-start-btn w-full rounded-lg font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {gameStarting ? (
                   <>
@@ -257,7 +221,7 @@ export default function Lobby() {
                 )}
               </button>
               {players.length < 2 && !gameStarting && (
-                <p className="text-xs text-center mt-1" style={{ color: '#6b7280' }}>
+                <p className="lobby-helper-text text-xs text-center mt-1">
                   Aguardando pelo menos 2 jogadores
                 </p>
               )}
@@ -270,25 +234,13 @@ export default function Lobby() {
               <>
                 <button
                   onClick={handleLeaveConfirm}
-                  className="flex-1 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
-                  style={{
-                    backgroundColor: '#ef4444',
-                    minHeight: '44px',
-                    fontSize: '16px',
-                  }}
+                  className="lobby-btn-danger flex-1 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
                 >
                   Sair mesmo assim?
                 </button>
                 <button
                   onClick={() => setLeaveConfirm(false)}
-                  className="flex-1 rounded-lg font-semibold transition-opacity hover:opacity-80"
-                  style={{
-                    backgroundColor: '#1a1d27',
-                    color: '#f1f5f9',
-                    border: '1px solid #2d3148',
-                    minHeight: '44px',
-                    fontSize: '16px',
-                  }}
+                  className="lobby-btn-secondary flex-1 rounded-lg font-semibold transition-opacity hover:opacity-80"
                 >
                   Cancelar
                 </button>
@@ -296,14 +248,7 @@ export default function Lobby() {
             ) : (
               <button
                 onClick={() => setLeaveConfirm(true)}
-                className="flex-1 rounded-lg font-semibold transition-opacity hover:opacity-80"
-                style={{
-                  backgroundColor: '#1a1d27',
-                  color: '#f1f5f9',
-                  border: '1px solid #2d3148',
-                  minHeight: '44px',
-                  fontSize: '16px',
-                }}
+                className="lobby-btn-secondary flex-1 rounded-lg font-semibold transition-opacity hover:opacity-80"
               >
                 Sair do Lobby
               </button>
@@ -311,14 +256,6 @@ export default function Lobby() {
           </div>
         </div>
       </div>
-
-      {/* Inline keyframe for fade-in animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   )
 }

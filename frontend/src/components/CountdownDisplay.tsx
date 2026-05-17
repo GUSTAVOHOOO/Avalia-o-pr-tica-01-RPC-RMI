@@ -3,9 +3,9 @@ interface CountdownDisplayProps {
 }
 
 function timerColor(seconds: number): string {
-  if (seconds <= 5) return '#ef4444'   // red (D-12)
-  if (seconds <= 10) return '#eab308'  // amber (D-12)
-  return '#22c55e'                     // green (D-12)
+  if (seconds <= 5) return 'var(--color-danger)'
+  if (seconds <= 10) return 'var(--color-warning)'
+  return 'var(--color-success)'
 }
 
 export default function CountdownDisplay({ seconds }: CountdownDisplayProps) {
@@ -13,9 +13,10 @@ export default function CountdownDisplay({ seconds }: CountdownDisplayProps) {
     <span
       style={{
         fontSize: '28px',
-        fontWeight: 600,
+        fontWeight: 700,
         color: timerColor(seconds),
         transition: 'color 0.3s ease',
+        fontVariantNumeric: 'tabular-nums',
       }}
       aria-live="polite"
     >

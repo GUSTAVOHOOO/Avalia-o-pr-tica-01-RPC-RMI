@@ -28,9 +28,9 @@ interface VoteUpdatePayload {
 }
 
 function voteBarColor(secondsLeft: number): string {
-  if (secondsLeft <= 5) return '#ef4444'  // destructive
-  if (secondsLeft <= 10) return '#eab308' // warning
-  return '#6366f1'                         // accent
+  if (secondsLeft <= 5) return 'var(--color-danger-strong)'
+  if (secondsLeft <= 10) return 'var(--color-warning)'
+  return 'var(--color-accent-strong)'
 }
 
 export default function PostGame() {

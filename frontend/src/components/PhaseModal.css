@@ -5,62 +5,116 @@
 
 /* Inline card — same card pattern as phase-panel in GameScreen.css */
 .phase-modal-surface {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-radius: 12px;
-  padding: 20px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  /* ↑ Espaçamento interno aumentado: 24px top/bottom, 24px h para respirar */
+  padding: 24px;
   width: 100%;
   animation: phaseFadeIn 200ms ease-out;
+  /* Grid interno: todos os filhos diretos empilham com gap consistente */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-/* Header row: PhaseBadge + title */
+/* ─── Header row: PhaseBadge + title ────────────────────────────────────── */
 .phase-modal-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 10px;
+  /* Sem margin-bottom separado: o gap do pai já cuida do espaço */
 }
 
+/* Título de fase: maior e mais bold para hierarquia clara sobre o body */
 .phase-modal-title {
-  color: #f1f5f9;
-  font-size: 16px;
-  font-weight: 600;
+  color: var(--color-text);
+  /* Escala modular: body=16 → título de seção=20 (MD headline hierarchy) */
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   margin: 0;
 }
 
-/* Risk warning text for SPY variant */
-.phase-modal-risk-text {
-  color: #ef4444;
-  font-size: 14px;
-  margin: 0 0 8px 0;
+/* ─── Separador visual entre seções dentro do painel ────────────────────── */
+/* Usado como divisor semântico quando há múltiplos grupos de campos */
+.phase-modal-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0;
 }
 
-/* Status text for EXCHANGE requester messages */
+/* ─── Texto de status (Exchange/requester messages) ──────────────────────── */
 .phase-modal-status-text {
-  color: #94a3b8;
+  color: var(--color-text-muted);
+  /* 14px → suficiente para mensagem auxiliar; linha de 1.5 para leitura */
   font-size: 14px;
-  margin: 8px 0;
+  line-height: 1.5;
+  margin: 0;
 }
 
-/* SPY target list */
+/* ─── Texto de risco (SPY) ────────────────────────────────────────────────── */
+.phase-modal-risk-text {
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ─── SPY target list ─────────────────────────────────────────────────────── */
 .phase-modal-spy-list {
+  display: flex;
+  flex-direction: column;
+  /* gap de 8px: espaçamento mínimo 8px entre targets (skill rule: touch-spacing) */
+  gap: 8px;
   list-style: none;
+  margin: 0;
   padding: 0;
-  margin: 0 0 12px 0;
 }
 
 .phase-modal-spy-item {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  border: 1px solid #2d3148;
-  margin-bottom: 6px;
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+  /* min-height 44px: toque mínimo (skill rule: touch-target-size) */
+  min-height: 44px;
+  padding: 10px 14px;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.phase-modal-spy-item:hover {
+  background-color: var(--color-surface-soft);
+  border-color: var(--color-border-strong);
 }
 
 .phase-modal-spy-item--selected {
-  border-color: #6366f1;
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .phase-modal-surface {
+    gap: 16px;
+    padding: 20px 16px;
+  }
+
+  .phase-modal-title {
+    font-size: 18px;
+  }
+
+  .phase-modal-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
 }

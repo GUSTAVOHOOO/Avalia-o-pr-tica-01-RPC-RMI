@@ -1,5 +1,8 @@
 """Unit tests for Phase 4 turn-state behavior (+ Phase 5 ExchangeRecord additions)."""
 
+import time
+
+import config
 from server.game_server import GameServer
 from server.turn_machine import TurnMachine
 from server.turn_state import TurnState, ExchangeRecord
@@ -37,6 +40,7 @@ def _server_with_turn_state(phase="HINT_PHASE"):
         player_ids=player_ids,
     )
     session.turn_machine.current_phase = phase
+    session.turn_machine._phase_start_time = time.monotonic()
     session.turn_machine.current_turn_state = TurnState(
         turn_number=1,
         player_ids=player_ids,
@@ -98,16 +102,24 @@ def test_hint_empty_on_timer():
     )
 
 
-def test_all_hints_auto_advance():
-    """HINT-04: all submitted hints auto-advance to GUESS_PHASE."""
+def test_all_hints_shortens_timer_then_advances():
+    """HINT-04: all submitted hints shorten the timer before GUESS_PHASE."""
+    original_grace = config.PHASE_COMPLETION_GRACE_SECONDS
+    config.PHASE_COMPLETION_GRACE_SECONDS = 0.05
     server, session, player_id, other_id = _server_with_turn_state()
 
-    server.submit_hint(player_id, "red")
-    server.submit_hint(other_id, "round")
+    try:
+        server.submit_hint(player_id, "red")
+        server.submit_hint(other_id, "round")
 
-    assert session.turn_machine.current_phase == "GUESS_PHASE", (
-        f"all hints should auto-advance to GUESS_PHASE, got {session.turn_machine.current_phase}"
-    )
+        assert session.turn_machine.current_phase == "HINT_PHASE"
+        assert server.broadcaster.events[-1]["type"] == "phase_timer_shortened"
+        time.sleep(0.12)
+        assert session.turn_machine.current_phase == "GUESS_PHASE", (
+            f"all hints should advance to GUESS_PHASE after grace timer, got {session.turn_machine.current_phase}"
+        )
+    finally:
+        config.PHASE_COMPLETION_GRACE_SECONDS = original_grace
 
 
 def test_submit_guess_correct():
@@ -134,16 +146,24 @@ def test_skip_guess():
     )
 
 
-def test_all_guesses_auto_advance():
-    """GUESS-03: all guessed/skipped players auto-advance to EXCHANGE_PHASE."""
+def test_all_guesses_shortens_timer_then_advances():
+    """GUESS-03: all guessed/skipped players shorten the timer before EXCHANGE_PHASE."""
+    original_grace = config.PHASE_COMPLETION_GRACE_SECONDS
+    config.PHASE_COMPLETION_GRACE_SECONDS = 0.05
     server, session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
 
-    server.submit_guess(player_id, other_id, "bicicleta")
-    server.skip_guess(other_id)
+    try:
+        server.submit_guess(player_id, other_id, "bicicleta")
+        server.skip_guess(other_id)
 
-    assert session.turn_machine.current_phase == "EXCHANGE_PHASE", (
-        f"all guesses should auto-advance to EXCHANGE_PHASE, got {session.turn_machine.current_phase}"
-    )
+        assert session.turn_machine.current_phase == "GUESS_PHASE"
+        assert server.broadcaster.events[-1]["type"] == "phase_timer_shortened"
+        time.sleep(0.12)
+        assert session.turn_machine.current_phase == "EXCHANGE_PHASE", (
+            f"all guesses should advance to EXCHANGE_PHASE after grace timer, got {session.turn_machine.current_phase}"
+        )
+    finally:
+        config.PHASE_COMPLETION_GRACE_SECONDS = original_grace
 
 
 def test_guess_result_broadcast():

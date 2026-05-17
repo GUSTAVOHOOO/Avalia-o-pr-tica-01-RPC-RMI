@@ -274,6 +274,49 @@ class TurnMachine:
         self._advance_to(next_phase)
         return True
 
+    def shorten_current_phase(self, expected_phase: str):
+        """Shorten the current phase timer after all required actions are done."""
+        broadcast_data: Optional[dict] = None
+        grace_seconds = config.PHASE_COMPLETION_GRACE_SECONDS
+
+        with self.lock:
+            if self.current_phase != expected_phase:
+                return False
+            if self.remaining_seconds <= grace_seconds:
+                return False
+
+            if self._timer_handle is not None:
+                self._timer_handle.cancel()
+                self._timer_handle = None
+
+            self._generation += 1
+            gen_snapshot = self._generation
+            duration = config.PHASE_DURATIONS.get(self.current_phase, 0)
+            self._phase_start_time = time.monotonic() - max(0, duration - grace_seconds)
+            phase_snapshot = self.current_phase
+
+            def _timer_callback():
+                next_phase = self._compute_next(phase_snapshot)
+                self._advance_to(
+                    next_phase,
+                    from_timer=True,
+                    expected_generation=gen_snapshot,
+                )
+
+            self._timer_handle = threading.Timer(grace_seconds, _timer_callback)
+            self._timer_handle.daemon = True
+            self._timer_handle.start()
+            broadcast_data = {
+                "room_code": self.room_code,
+                "phase": self.current_phase,
+                "remaining_seconds": grace_seconds,
+                "current_turn": self.current_turn,
+                "max_turns": self.max_turns,
+            }
+
+        self.broadcaster.broadcast("phase_timer_shortened", broadcast_data)
+        return True
+
     @property
     def remaining_seconds(self) -> int:
         """Approximate seconds remaining in the current phase.

@@ -605,7 +605,7 @@ class GameServer:
         if failed:
             self._remove_failed_players(failed)
         if should_advance:
-            turn_machine.advance_to_guess_phase()
+            turn_machine.shorten_current_phase("HINT_PHASE")
         return {"ok": True}
 
     def submit_guess(self, player_id: str, target_player_id: str, guess_word: str) -> dict:
@@ -653,7 +653,7 @@ class GameServer:
         if failed:
             self._remove_failed_players(failed)
         if should_advance:
-            turn_machine.advance_if_current_phase("GUESS_PHASE")
+            turn_machine.shorten_current_phase("GUESS_PHASE")
         return {"ok": True, "is_correct": is_correct}
 
     def skip_guess(self, player_id: str) -> dict:
@@ -677,7 +677,7 @@ class GameServer:
             turn_state.guesses_made[player_id] = None
             should_advance = turn_state.all_guesses_submitted()
         if should_advance:
-            turn_machine.advance_if_current_phase("GUESS_PHASE")
+            turn_machine.shorten_current_phase("GUESS_PHASE")
         return {"ok": True}
 
     def request_exchange(self, player_id: str, target_player_id: str) -> dict:
@@ -763,7 +763,7 @@ class GameServer:
             should_advance = turn_state.exchange_phase_complete()
 
         if should_advance:
-            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
+            turn_machine.shorten_current_phase("EXCHANGE_PHASE")
         return {"ok": True}
 
     def respond_exchange(self, player_id: str, exchange_id: str, accept: bool) -> dict:
@@ -821,7 +821,7 @@ class GameServer:
             event_type = "exchange_accepted" if accept else "exchange_rejected"
             self.broadcaster.send_to_player(requester_notice["target_player_id"], event_type, requester_notice)
         if should_advance:
-            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
+            turn_machine.shorten_current_phase("EXCHANGE_PHASE")
         return {"ok": True}
 
     def submit_exchange_hint(self, player_id: str, exchange_id: str, hint_word: str) -> dict:
@@ -912,7 +912,7 @@ class GameServer:
         for target_id, event_type, data in private_deliveries:
             self.broadcaster.send_to_player(target_id, event_type, data)
         if should_advance:
-            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
+            turn_machine.shorten_current_phase("EXCHANGE_PHASE")
         return {"ok": True}
 
     def attempt_spy(self, player_id: str, exchange_id: str) -> dict:
@@ -994,12 +994,12 @@ class GameServer:
             if failed:
                 self._remove_failed_players(failed)
             if should_advance:
-                turn_machine.advance_if_current_phase("SPY_PHASE")
+                turn_machine.shorten_current_phase("SPY_PHASE")
             return {"ok": True, "discovered": True}
         else:
             self.broadcaster.send_to_player(player_id, "spy_success", success_data)
             if should_advance:
-                turn_machine.advance_if_current_phase("SPY_PHASE")
+                turn_machine.shorten_current_phase("SPY_PHASE")
             return {"ok": True, "discovered": False}
 
     def get_scores(self, player_id: str) -> dict:

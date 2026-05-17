@@ -53,6 +53,13 @@ interface PhaseChangedPayload {
   spy_targets?: string[]
 }
 
+interface PhaseTimerShortenedPayload {
+  phase: string
+  remaining_seconds: number
+  current_turn: number
+  max_turns: number
+}
+
 interface JoinRoomPayload {
   error?: string
   status?: string
@@ -266,6 +273,24 @@ export default function GameScreen() {
       setConnectionError(null)
       applyPhase(data)
     }
+    const handlePhaseTimerShortened = (data: PhaseTimerShortenedPayload) => {
+      setConnectionError(null)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+
+      setCurrentPhase(data.phase)
+      setRemainingSeconds(data.remaining_seconds)
+      setCurrentTurn(data.current_turn)
+      setMaxTurns(data.max_turns)
+
+      let secs = data.remaining_seconds
+      intervalRef.current = setInterval(() => {
+        secs = Math.max(0, secs - 1)
+        setRemainingSeconds(secs)
+      }, 1000)
+    }
     const handleObjectAssigned = (data: ObjectAssignedPayload) => setMyObjectAssignment(data)
     const handleHintReceived = (data: HintReceivedPayload) => {
       setHintsCount(data.hints_count)
@@ -344,6 +369,7 @@ export default function GameScreen() {
     }
 
     socket.on('phase_changed', handlePhaseChanged)
+    socket.on('phase_timer_shortened', handlePhaseTimerShortened)
     socket.on('object_assigned', handleObjectAssigned)
     socket.on('hint_received', handleHintReceived)
     socket.on('guess_result', handleGuessResult)
@@ -367,6 +393,7 @@ export default function GameScreen() {
         intervalRef.current = null
       }
       socket.off('phase_changed', handlePhaseChanged)
+      socket.off('phase_timer_shortened', handlePhaseTimerShortened)
       socket.off('object_assigned', handleObjectAssigned)
       socket.off('hint_received', handleHintReceived)
       socket.off('guess_result', handleGuessResult)
@@ -489,7 +516,7 @@ export default function GameScreen() {
               )}
 
               {/* Phase action panel — inline card, no overlay; key triggers fade on phase change */}
-              <div key={currentPhase} className="phase-fade-in" style={{ position: 'relative' }}>
+              <div key={currentPhase} className="phase-fade-in phase-panel--relative">
                 <PhaseModal
                   phase={currentPhase}
                   players={players}
@@ -536,7 +563,7 @@ export default function GameScreen() {
 
               {/* Scoring phase */}
               {currentPhase === 'SCORING_PHASE' && (
-                <section key="scoring" className="phase-panel phase-panel--scoring phase-fade-in" style={{ position: 'relative' }}>
+                <section key="scoring" className="phase-panel phase-panel--scoring phase-fade-in phase-panel--relative">
                   <h2 className="phase-panel__title">Pontuação do Turno</h2>
                   {deltaToasts.map((t) => (
                     <ScoreDeltaToast key={t.id} id={t.id} delta={t.delta} playerName={t.playerName} onDone={removeToast} />

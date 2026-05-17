@@ -1,6 +1,7 @@
 /* ─── PostGame page ───────────────────────────────────────────────────────── */
 .postgame {
-  background-color: #0f1117;
+  background-color: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
   padding: 64px 32px;
   display: flex;
@@ -11,8 +12,8 @@
 }
 
 .postgame__header {
-  color: #f1f5f9;
-  font-size: 20px;
+  color: var(--color-text);
+  font-size: 28px;
   font-weight: 600;
   margin: 0;
   text-align: center;
@@ -28,7 +29,7 @@
 }
 
 .postgame__podium-loading {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   text-align: center;
   width: 100%;
@@ -36,9 +37,10 @@
 }
 
 .postgame__podium-card {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -49,37 +51,38 @@
 
 /* 1st place: success border accent + elevated top padding */
 .postgame__podium-card--first {
-  border-top: 3px solid #22c55e;
+  border-top: 3px solid var(--color-success);
   padding-top: 32px;
 }
 
 .postgame__podium-rank {
   font-size: 28px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--color-text);
 }
 
 .postgame__podium-name {
   font-size: 16px;
-  color: #f1f5f9;
+  color: var(--color-text);
   text-align: center;
 }
 
 .postgame__podium-score {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 /* ─── Per-turn score table ───────────────────────────────────────────────── */
 .postgame__table-section {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 16px;
 }
 
 .postgame__table-heading {
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 12px;
@@ -91,12 +94,12 @@
 }
 
 .postgame__table th {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 400;
   text-align: right;
   padding: 6px 8px;
-  border-bottom: 1px solid #2d3148;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .postgame__table th:first-child {
@@ -104,11 +107,11 @@
 }
 
 .postgame__table tr:not(:last-child) td {
-  border-bottom: 1px solid #2d3148;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .postgame__table-cell {
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 14px;
   text-align: right;
   padding: 6px 8px;
@@ -119,15 +122,16 @@
 }
 
 .postgame__table-cell--total {
-  color: #6366f1;
+  color: var(--color-accent);
   font-weight: 600;
 }
 
 /* ─── Vote section ───────────────────────────────────────────────────────── */
 .postgame__vote {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -135,19 +139,19 @@
 }
 
 .postgame__vote-heading {
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
 
 .postgame__vote-timer-label {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .postgame__vote-timer-value {
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 28px;
   font-weight: 600;
 }
@@ -159,7 +163,7 @@
 }
 
 .postgame__vote-bar-track {
-  background-color: #2d3148;
+  background-color: var(--color-surface-strong);
   border-radius: 4px;
   height: 8px;
   overflow: hidden;
@@ -172,7 +176,7 @@
 }
 
 .postgame__vote-progress {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -182,30 +186,36 @@
 }
 
 .postgame__vote-btn-yes {
-  background-color: #6366f1;
-  border: 1px solid #6366f1;
-  border-radius: 8px;
-  color: #f1f5f9;
+  background-color: var(--color-accent-strong);
+  border: 1px solid var(--color-accent-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
   min-height: 44px;
   flex: 1;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.postgame__vote-btn-yes:active:not(:disabled),
+.postgame__vote-btn-no:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .postgame__vote-btn-yes:disabled {
-  background-color: #1a1d27;
-  border-color: #2d3148;
-  color: #6b7280;
+  background-color: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-subtle);
   cursor: not-allowed;
   opacity: 0.75;
 }
 
 .postgame__vote-btn-no {
   background-color: transparent;
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  color: #ef4444;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  color: var(--color-danger);
   cursor: pointer;
   font-size: 14px;
   min-height: 44px;
@@ -218,32 +228,33 @@
 }
 
 .postgame__vote-status {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   text-align: center;
 }
 
 /* ─── Result banner ──────────────────────────────────────────────────────── */
 .postgame__result-banner {
-  background-color: #1a1d27;
-  border: 1px solid #2d3148;
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
   padding: 16px;
   text-align: center;
-  color: #f1f5f9;
+  color: var(--color-text);
   font-size: 16px;
 }
 
 .postgame__result-banner--restarting {
-  border-left: 3px solid #22c55e;
+  border-left: 3px solid var(--color-success);
 }
 
 .postgame__result-banner--ended {
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid var(--color-accent);
 }
 
 .postgame__redirect-countdown {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   margin-top: 8px;
 }
@@ -260,5 +271,40 @@
 
 /* Table row highlight for current player */
 .postgame__table-row--mine td {
-  background-color: #1a1d27;
+  background-color: var(--color-bg-elevated);
+}
+
+@media (max-width: 640px) {
+  .postgame {
+    padding: 40px 16px;
+  }
+
+  .postgame__header {
+    font-size: 24px;
+  }
+
+  .postgame__podium {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .postgame__podium-card {
+    min-width: 0;
+  }
+
+  .postgame__table-section {
+    overflow-x: auto;
+  }
+
+  .postgame__table {
+    min-width: 520px;
+  }
+
+  .postgame__vote-btn-row {
+    flex-direction: column;
+  }
+
+  .postgame__vote-btn-no {
+    width: 100%;
+  }
 }

@@ -1,0 +1,176 @@
+/* ─── Lobby page ─────────────────────────────────────────────────────────── */
+.lobby-root {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ─── Toast notifications ────────────────────────────────────────────────── */
+.lobby-toast--success { background-color: var(--color-success); color: var(--color-text-inverse); }
+.lobby-toast--error   { background-color: var(--color-danger-strong); }
+.lobby-toast--info    { background-color: var(--color-surface); border: 1px solid var(--color-border); }
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.lobby-title {
+  /* Righteous herdado do h1 em index.css */
+  color: var(--color-text);
+  /* 24px: título de página, acima de todos os outros textos */
+  font-size: 24px;
+  font-weight: 400; /* Righteous já é display, não precisa de bold */
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.lobby-session-badge {
+  background-color: var(--color-surface-soft);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* ─── Room code card ─────────────────────────────────────────────────────── */
+.lobby-code-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.lobby-code-hint {
+  /* 13px muted = hint/caption, menor que tudo */
+  color: var(--color-text-muted);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.lobby-code-display {
+  /* 32px Righteous: ponto focal máximo da página */
+  font-family: var(--font-heading);
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 0.12em; /* tracking extra para código */
+  color: var(--color-text);
+}
+
+.lobby-copy-btn {
+  color: var(--color-text);
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  transition: opacity 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.lobby-copy-btn:active:not(:disabled) { transform: translateY(1px); }
+.lobby-copy-btn--default { background-color: var(--color-bg-elevated); }
+.lobby-copy-btn--copied  { background-color: var(--color-success); color: var(--color-text-inverse); }
+
+/* ─── Player count / list ────────────────────────────────────────────────── */
+.lobby-player-count {
+  /* 14px muted: informação de status secundária */
+  color: var(--color-text-muted);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.lobby-waiting-text {
+  color: var(--color-text-subtle);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ─── Start game button ──────────────────────────────────────────────────── */
+.lobby-start-btn {
+  background-color: var(--color-accent-strong);
+  min-height: 44px;
+  font-size: 16px;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.lobby-start-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.lobby-helper-text {
+  color: var(--color-text-muted);
+}
+
+/* ─── Leave / cancel buttons ─────────────────────────────────────────────── */
+.lobby-btn-danger {
+  background-color: var(--color-danger-strong);
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.lobby-btn-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  min-height: 44px;
+  font-size: 16px;
+}
+
+/* ─── Player list item animation ─────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lobby-player-item {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+.player-list-item {
+  align-items: center;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: default;
+  display: flex;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 16px;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.player-list-item:hover {
+  background-color: var(--color-surface-soft);
+  border-color: var(--color-border-strong);
+}
+
+.player-list-item__name {
+  color: var(--color-text);
+  flex: 1;
+  font-size: 16px;
+  font-weight: 400;
+  min-width: 0;
+}
+
+.player-list-item__current {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.player-list-item__host {
+  background-color: var(--color-accent-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+
+@media (max-width: 520px) {
+  .lobby-root {
+    padding-top: 24px;
+  }
+
+  .lobby-title {
+    font-size: 22px;
+  }
+
+  .lobby-code-card {
+    padding: 20px;
+  }
+
+  .lobby-code-display {
+    font-size: 24px;
+  }
+}
