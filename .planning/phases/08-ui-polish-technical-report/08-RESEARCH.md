@@ -629,17 +629,19 @@ sequenceDiagram
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **SPY modal: exibir nomes dos participantes da troca?**
    - What we know: `spy_targets` é uma lista de `exchange_id` strings opacas (turn_machine.py:207). O cliente não tem `exchanges` dict com `requester_id`/`target_id`.
    - What's unclear: O UI-SPEC diz "lista de trocas ativas" — se o servidor não envia quem são os participantes, o modal só pode mostrar "Troca #1", "Troca #2".
    - Recommendation: No SPY_PHASE PHASE_CHANGED, o servidor poderia incluir `spy_target_info: [{exchange_id, requester_name, target_name}]`. Se não for alterado o servidor, o modal mostra IDs abreviados. O planner deve decidir se alterar o broadcast ou aceitar UI degradada.
+   - RESOLVED: Using "Troca N" abbreviated labels (see plan 08-03 T2)
 
 2. **Pandoc template: default vs eisvogel?**
    - What we know: eisvogel produz PDFs mais bonitos mas requer download separado do template `.tex`.
    - What's unclear: Se o template eisvogel está disponível no sistema.
    - Recommendation: Usar pandoc padrão com opções de `geometry` e `fontsize` via `-V`. Suficiente para 5-10 páginas acadêmicas.
+   - RESOLVED: Using pandoc default template with -V geometry:margin=2cm (see plan 08-01 T1)
 
 ---
 
