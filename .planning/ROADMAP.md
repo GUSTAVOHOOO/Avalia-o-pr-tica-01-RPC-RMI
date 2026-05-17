@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Core Turn Loop** - One complete playable turn: image assigned, hints submitted, guesses scored, scoreboard updated (completed 2026-05-14)
 - [x] **Phase 5: Exchange + Spy Mechanics** - Private hint exchanges and espionage with public discovery notifications (completed 2026-05-14)
 - [x] **Phase 6: Synonym Arbitration** - Portuguese WordNet synonym matching replaces exact-match-only guessing (completed 2026-05-15)
-- [ ] **Phase 7: Reconnection + End-of-Game** - State restoration on reconnect, post-game podium, play-again vote, chat
+- [x] **Phase 7: Reconnection + End-of-Game** - State restoration on reconnect, post-game podium, play-again vote, chat (completed 2026-05-16)
 - [ ] **Phase 8: UI Polish + Technical Report** - Polished web UI across all screens and complete academic report
 
 ## Phase Details
@@ -182,7 +182,7 @@ Plans:
 - [x] 07-01-PLAN.md — Wave 0: test stubs for all Phase 7 behaviors (16 pytest.skip stubs across 4 test files)
 - [x] 07-02-PLAN.md — Server backbone: EventBroadcaster failure tracking, reconnect_player, send_chat, VoteRecord, vote methods, turn_score_history; all tests green
 - [x] 07-03-PLAN.md — Bridge + GameScreen: grace-period disconnect, reconnect_game handler, 5 new callback methods, GameScreen reconnect-on-mount + navigate to /postgame
-- [ ] 07-04-PLAN.md — PostGame screen, ChatPanel component, /postgame route: podium, vote UI, chat integration end-to-end
+- [x] 07-04-PLAN.md — PostGame screen, ChatPanel component, /postgame route: podium, vote UI, chat integration end-to-end
 **UI hint**: yes
 
 ### Phase 8: UI Polish + Technical Report
@@ -199,7 +199,22 @@ Plans:
   4. The reconnection banner appears (amber) when Socket.IO loses connection and turns red if offline for more than a few seconds; it disappears automatically on reconnect
   5. The technical report contains: (a) a Pyro5 introduction with technology comparison and justification, (b) an architecture diagram showing the three-process model, (c) at least two RPC sequence diagrams (callback registration and game event delivery), (d) screenshots of the running application, and (e) complete installation and execution instructions
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+
+**Wave 1** *(parallel — no interdependencies)*
+
+- [ ] 08-01-PLAN.md — docs/ scaffold: Makefile (mmdc + pandoc pipeline), relatorio.md full content (4 sections, Portuguese), 3 Mermaid diagram sources (REPORT-01, REPORT-02, REPORT-03, REPORT-04)
+- [ ] 08-02-PLAN.md — CountdownDisplay color logic (timerColor, 3 states), ReconnectionBanner component + CSS, GameScreen.css keyframes (slideInFromBottom, slideUpFade) (UI-05, UI-09)
+- [ ] 08-03-PLAN.md — PhaseModal.tsx all 5 variants (HINT, GUESS, EXCHANGE-requester, EXCHANGE-recipient, SPY) + PhaseModal.css (UI-06)
+- [ ] 08-04-PLAN.md — ScoreDeltaToast.tsx + ScoreDeltaToast.css (UI-07)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 08-05-PLAN.md — GameScreen.tsx integration: replace renderPhasePanel with PhaseModal, add ReconnectionBanner, add ScoreDeltaToast, exchange/spy state machine, spy_targets capture (UI-04, UI-05, UI-06, UI-07, UI-09)
+- [ ] 08-06-PLAN.md — Screen polish: Landing hover states, CreateGame/JoinByCode alignment, Lobby player row hover, PostGame podium hover + table highlight, ChatPanel label/placeholder copy (UI-01, UI-02, UI-03, UI-08, UI-10)
+
 **UI hint**: yes
 
 ## Progress
@@ -215,5 +230,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Core Turn Loop | 5/5 | Complete | 2026-05-14 |
 | 5. Exchange + Spy Mechanics | 4/4 | Complete    | 2026-05-14 |
 | 6. Synonym Arbitration | 3/3 | Complete   | 2026-05-15 |
-| 7. Reconnection + End-of-Game | 3/4 | In Progress|  |
-| 8. UI Polish + Technical Report | 0/TBD | Not started | - |
+| 7. Reconnection + End-of-Game | 4/4 | Complete   | 2026-05-16 |
+| 8. UI Polish + Technical Report | 0/6 | Not started | - |
