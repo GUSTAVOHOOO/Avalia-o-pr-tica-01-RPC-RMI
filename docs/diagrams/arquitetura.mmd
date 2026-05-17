@@ -1,0 +1,12 @@
+graph LR
+  NS[Name Server\nPyro5 NS]
+  GS[GameServer\nPyro5 Daemon]
+  BR[Bridge\nFlask-SocketIO]
+  FE[Frontend\nReact Browser]
+
+  GS -->|register| NS
+  BR -->|lookup game.server| NS
+  BR -->|RPC calls| GS
+  GS -->|@oneway callback| BR
+  FE -->|Socket.IO| BR
+  BR -->|Socket.IO events| FE
