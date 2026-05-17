@@ -185,6 +185,38 @@ class BridgeCallbackReceiver:
 
     @Pyro5.api.oneway
     @Pyro5.api.callback
+    def on_exchange_accepted(self, data: dict):
+        """Private notification to exchange requester when the target accepts."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("exchange_accepted", data, to=sid)
+            print(f"[BRIDGE] exchange_accepted -> sid={sid} player={target_player_id}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_exchange_accepted: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
+    def on_exchange_rejected(self, data: dict):
+        """Private notification to exchange requester when the target rejects."""
+        target_player_id = data.get("target_player_id")
+        with _sid_lock:
+            sid = _player_to_sid.get(target_player_id)
+        if not sid:
+            print(f"[BRIDGE] player SID not found for {target_player_id}", flush=True)
+            return
+        try:
+            socketio.emit("exchange_rejected", data, to=sid)
+            print(f"[BRIDGE] exchange_rejected -> sid={sid} player={target_player_id}", flush=True)
+        except Exception as exc:
+            print(f"[BRIDGE] ERROR in on_exchange_rejected: {exc}", flush=True)
+
+    @Pyro5.api.oneway
+    @Pyro5.api.callback
     def on_exchange_completed(self, data: dict):
         """Public broadcast when both players complete a private hint exchange."""
         try:
@@ -536,6 +568,19 @@ def handle_request_exchange(data):
     proxy = get_game_server_proxy()
     result = proxy.request_exchange(player_id, (data or {}).get("target_player_id", ""))
     print(f"[BRIDGE] request_exchange from player {player_id} -> {result}", flush=True)
+    return result
+
+
+@socketio.on("skip_exchange")
+def handle_skip_exchange(data):
+    """Skip this player's private exchange action for the active turn."""
+    with _sid_lock:
+        player_id = _sid_to_player.get(request.sid)
+    if not player_id:
+        return {"error": "sessao nao encontrada"}
+    proxy = get_game_server_proxy()
+    result = proxy.skip_exchange(player_id)
+    print(f"[BRIDGE] skip_exchange from player {player_id} -> {result}", flush=True)
     return result
 
 

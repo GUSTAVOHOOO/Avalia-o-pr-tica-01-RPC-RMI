@@ -194,6 +194,29 @@ def test_exchange_one_per_turn():
     )
 
 
+def test_skip_exchange_records_choice():
+    """EXCHANGE-07: skip_exchange() marks a player as unavailable for private exchanges."""
+    server, session, alice_id, bob_id, charlie_id = _server_with_exchange_state("EXCHANGE_PHASE")
+
+    result = server.skip_exchange(alice_id)
+
+    assert result == {"ok": True}, f"Expected ok=True, got {result}"
+    assert alice_id in session.turn_machine.current_turn_state.exchange_skips
+
+
+def test_exchange_phase_auto_advances_when_no_pair_available():
+    """EXCHANGE-08: phase advances when everyone has exchanged or skipped."""
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_accepted_exchange()
+
+    # Complete the accepted Alice/Bob exchange. Charlie is the only player left, so no new pair remains.
+    server.submit_exchange_hint(alice_id, exchange_id, "round")
+    server.submit_exchange_hint(bob_id, exchange_id, "wheels")
+
+    assert session.turn_machine.current_phase == "SPY_PHASE", (
+        f"completed exchange with an eligible spy should advance to SPY_PHASE, got {session.turn_machine.current_phase}"
+    )
+
+
 def test_spy_phase_skipped_when_no_exchanges():
     """D-06: _compute_next('EXCHANGE_PHASE') with empty completed_exchanges returns SCORING_PHASE."""
     _server, session, _alice, _bob, _charlie = _server_with_exchange_state("EXCHANGE_PHASE")
@@ -215,6 +238,32 @@ def test_spy_phase_entered_when_exchange_exists():
     result = tm._compute_next("EXCHANGE_PHASE")
     assert result == "SPY_PHASE", (
         f"With at least one completed exchange, _compute_next should return SPY_PHASE, got {result}"
+    )
+
+
+def test_spy_phase_skipped_when_no_eligible_spy():
+    """D-06: two-player completed exchange has no eligible spy and skips SPY_PHASE."""
+    server = GameServer()
+    host = server.create_game("Alice", "PYRO:fake.alice@127.0.0.1:9999", 3)
+    join = server.join_game("Bob", "PYRO:fake.bob@127.0.0.1:9999", host["room_code"])
+    player_ids = [host["player_id"], join["player_id"]]
+    server.broadcaster = FakeBroadcaster()
+    session = server.sessions[host["room_code"]]
+    session.turn_machine = TurnMachine(
+        host["room_code"],
+        max_turns=3,
+        broadcaster=server.broadcaster,
+        player_ids=player_ids,
+    )
+    session.turn_machine.current_phase = "EXCHANGE_PHASE"
+    session.turn_machine.current_turn_state = TurnState(turn_number=1, player_ids=player_ids)
+    req = server.request_exchange(host["player_id"], join["player_id"])
+    server.respond_exchange(join["player_id"], req["exchange_id"], True)
+    server.submit_exchange_hint(host["player_id"], req["exchange_id"], "round")
+    server.submit_exchange_hint(join["player_id"], req["exchange_id"], "wheels")
+
+    assert session.turn_machine.current_phase == "SCORING_PHASE", (
+        f"two-player exchange should skip SPY_PHASE, got {session.turn_machine.current_phase}"
     )
 
 
@@ -305,4 +354,15 @@ def test_spy_one_per_turn():
     result = server.attempt_spy(charlie_id, exchange_id)
     assert result == {"error": "already_used_spy"}, (
         f"Expected already_used_spy on second attempt, got {result}"
+    )
+
+
+def test_spy_phase_auto_advances_after_all_eligible_attempt():
+    """SPY-06: when the only eligible spy attempts, phase advances to SCORING_PHASE."""
+    server, session, alice_id, bob_id, charlie_id, exchange_id = _setup_spy_state()
+
+    server.attempt_spy(charlie_id, exchange_id)
+
+    assert session.turn_machine.current_phase == "SCORING_PHASE", (
+        f"all eligible spy attempts should auto-advance to SCORING_PHASE, got {session.turn_machine.current_phase}"
     )

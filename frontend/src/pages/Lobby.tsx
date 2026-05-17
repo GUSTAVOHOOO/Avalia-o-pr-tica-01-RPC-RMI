@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import socket from '../socket'
 import PlayerListItem from '../components/PlayerListItem'
@@ -28,6 +28,8 @@ export default function Lobby() {
   const [copySuccess, setCopySuccess] = useState(false)
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
+  // Ref keeps the latest players list accessible inside stable callbacks (avoids stale closure)
+  const playersRef = useRef<Player[]>([])
 
   const playerId = localStorage.getItem('player_id') ?? ''
   const isHost = localStorage.getItem('is_host') === 'true'
@@ -40,16 +42,18 @@ export default function Lobby() {
 
   const handlePlayerJoined = useCallback((data: { players: Player[] }) => {
     setPlayers(data.players)
+    playersRef.current = data.players
     localStorage.setItem('players', JSON.stringify(data.players))
   }, [])
 
   const handleGameStarted = useCallback((data?: { players?: Player[] }) => {
     setGameStarting(false)
-    if (data?.players) {
-      setPlayers(data.players)
-      localStorage.setItem('players', JSON.stringify(data.players))
+    // Use server-provided list; fall back to the most recent local state (playersRef)
+    // so localStorage is always written with the full roster before GameScreen mounts
+    const finalPlayers = data?.players ?? playersRef.current
+    if (finalPlayers.length > 0) {
+      localStorage.setItem('players', JSON.stringify(finalPlayers))
     }
-    // Navigate to game phase placeholder (Phase 3+)
     navigate(`/game/${sessionId}`)
   }, [navigate, sessionId])
 
@@ -76,6 +80,7 @@ export default function Lobby() {
     socket.emit('get_players', { room_code: sessionId }, (data: { players?: Player[]; error?: string }) => {
       if (data?.players) {
         setPlayers(data.players)
+        playersRef.current = data.players
         localStorage.setItem('players', JSON.stringify(data.players))
       }
     })

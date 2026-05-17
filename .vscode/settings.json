@@ -1,0 +1,10 @@
+{
+  "css.lint.vendorPrefix": "ignore",
+  "files.exclude": {
+    "**/frontend/dist": true
+  },
+  "css.validate": true,
+  "search.exclude": {
+    "**/frontend/dist": true
+  }
+}

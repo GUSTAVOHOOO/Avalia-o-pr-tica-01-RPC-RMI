@@ -164,6 +164,7 @@ export default function GameScreen() {
   const [exchangeHintInput, setExchangeHintInput] = useState('')
   const [exchangeHintSubmitted, setExchangeHintSubmitted] = useState(false)
   const [exchangeTarget, setExchangeTarget] = useState('')
+  const [exchangeSkipped, setExchangeSkipped] = useState(false)
   const [selectedSpyTarget, setSelectedSpyTarget] = useState('')
   const [spyTargets, setSpyTargets] = useState<string[]>([])
   const [spyAttempted, setSpyAttempted] = useState(false)
@@ -203,6 +204,7 @@ export default function GameScreen() {
         setExchangeHintInput('')
         setExchangeHintSubmitted(false)
         setExchangeTarget('')
+        setExchangeSkipped(false)
         setSelectedSpyTarget('')
         setSpyAttempted(false)
         setDeltaToasts([])
@@ -299,6 +301,15 @@ export default function GameScreen() {
       setPlayerLeftMsg(`${data.player_name} saiu da partida`)
       setTimeout(() => setPlayerLeftMsg(null), 4000)
     }
+    // Sync full player list whenever player_joined fires — covers race where
+    // GameScreen mounted before localStorage was fully written in Lobby (BUG-GUESS-01)
+    const handlePlayerJoined = (data: { players?: Player[] }) => {
+      if (data?.players && data.players.length > 0) {
+        setPlayers(data.players)
+        setTotalPlayers(data.players.length)
+        localStorage.setItem('players', JSON.stringify(data.players))
+      }
+    }
     const handleGameRestarting = () => {
       navigate(`/game/${roomCode}`)
     }
@@ -314,6 +325,13 @@ export default function GameScreen() {
     // Exchange/SPY handlers
     const handleExchangeRequested = (data: { exchange_id: string; requester_id: string }) => {
       setExchangeRequest({ exchange_id: data.exchange_id, requester_id: data.requester_id })
+    }
+    const handleExchangeAccepted = () => {
+      setExchangeStatus('accepted')
+    }
+    const handleExchangeRejected = () => {
+      setMyExchangeId(null)
+      setExchangeStatus(null)
     }
     const handleExchangeHints = () => {
       setExchangeHintSubmitted(true)
@@ -332,10 +350,13 @@ export default function GameScreen() {
     socket.on('score_updated', handleScoreUpdated)
     socket.on('game_ended', handleGameEnded)
     socket.on('player_left', handlePlayerLeft)
+    socket.on('player_joined', handlePlayerJoined)
     socket.on('game_restarting', handleGameRestarting)
     socket.on('chat_message', handleChatMessage)
     socket.on('vote_started', handleVoteStarted)
     socket.on('exchange_requested', handleExchangeRequested)
+    socket.on('exchange_accepted', handleExchangeAccepted)
+    socket.on('exchange_rejected', handleExchangeRejected)
     socket.on('exchange_hints', handleExchangeHints)
     socket.on('spy_success', handleSpySuccess)
     socket.on('spy_discovered', handleSpyDiscovered)
@@ -352,10 +373,13 @@ export default function GameScreen() {
       socket.off('score_updated', handleScoreUpdated)
       socket.off('game_ended', handleGameEnded)
       socket.off('player_left', handlePlayerLeft)
+      socket.off('player_joined', handlePlayerJoined)
       socket.off('game_restarting', handleGameRestarting)
       socket.off('chat_message', handleChatMessage)
       socket.off('vote_started', handleVoteStarted)
       socket.off('exchange_requested', handleExchangeRequested)
+      socket.off('exchange_accepted', handleExchangeAccepted)
+      socket.off('exchange_rejected', handleExchangeRejected)
       socket.off('exchange_hints', handleExchangeHints)
       socket.off('spy_success', handleSpySuccess)
       socket.off('spy_discovered', handleSpyDiscovered)
@@ -384,13 +408,20 @@ export default function GameScreen() {
   }
 
   function requestExchange() {
-    if (!exchangeTarget) return
-    socket.emit('request_exchange', { target_player_id: exchangeTarget }, (result: { exchange_id?: string } | undefined) => {
-      if (result?.exchange_id) setMyExchangeId(result.exchange_id)
-      else setMyExchangeId(exchangeTarget) // fallback — track that we initiated
+    if (!exchangeTarget || exchangeSkipped) return
+    socket.emit('request_exchange', { target_player_id: exchangeTarget }, (result: { exchange_id?: string; error?: string } | undefined) => {
+      if (!result?.exchange_id || result.error) return
+      setMyExchangeId(result.exchange_id)
+      setExchangeTarget('')
+      setExchangeStatus('pending')
     })
+  }
+
+  function skipExchange() {
+    if (exchangeSkipped || myExchangeId || exchangeRequest) return
+    socket.emit('skip_exchange', {}, () => undefined)
+    setExchangeSkipped(true)
     setExchangeTarget('')
-    setExchangeStatus('pending')
   }
 
   function respondExchange(accept: boolean) {
@@ -401,8 +432,9 @@ export default function GameScreen() {
   }
 
   function submitExchangeHint() {
-    if (!exchangeRequest || exchangeHintSubmitted) return
-    socket.emit('submit_exchange_hint', { exchange_id: exchangeRequest.exchange_id, hint_word: exchangeHintInput }, () => undefined)
+    const activeExchangeId = exchangeRequest?.exchange_id ?? myExchangeId
+    if (!activeExchangeId || exchangeHintSubmitted) return
+    socket.emit('submit_exchange_hint', { exchange_id: activeExchangeId, hint_word: exchangeHintInput }, () => undefined)
     setExchangeHintSubmitted(true)
   }
 
@@ -489,6 +521,8 @@ export default function GameScreen() {
                   exchangeTarget={exchangeTarget}
                   onExchangeTargetChange={setExchangeTarget}
                   onExchangeRequest={requestExchange}
+                  onExchangeSkip={skipExchange}
+                  exchangeSkipped={exchangeSkipped}
                   spyTargets={spyTargets}
                   selectedSpyTarget={selectedSpyTarget}
                   onSpyTargetSelect={setSelectedSpyTarget}

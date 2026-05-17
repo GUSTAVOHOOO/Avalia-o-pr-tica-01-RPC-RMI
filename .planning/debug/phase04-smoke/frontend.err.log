@@ -110,3 +110,27 @@ AggregateError [ECONNREFUSED]:
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1134:18)
     at afterConnectMultiple (node:net:1715:7)
+[2m18:53:52[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=0zq3zp6a[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m18:54:17[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=109em3ox[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m18:54:42[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=10spmy4p[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m18:55:07[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=11c0ubot[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m18:55:32[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=11vbww5g[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+[2m18:55:57[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /socket.io/?EIO=4&transport=polling&t=12emmf8g[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)

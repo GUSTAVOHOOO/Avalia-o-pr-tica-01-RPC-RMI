@@ -244,7 +244,7 @@ class TurnMachine:
             # Phase 5 addition: skip SPY_PHASE if no completed exchanges (D-06)
             if current_phase == "EXCHANGE_PHASE":
                 ts = self.current_turn_state
-                if ts is None or not ts.completed_exchanges:
+                if ts is None or not ts.completed_exchanges or not ts.spy_eligible_players():
                     return "SCORING_PHASE"
                 return "SPY_PHASE"
             idx = PHASE_SEQUENCE.index(current_phase)
@@ -263,10 +263,15 @@ class TurnMachine:
 
     def advance_to_guess_phase(self):
         """Fast path from HINT_PHASE to GUESS_PHASE after all hints arrive."""
+        return self.advance_if_current_phase("HINT_PHASE")
+
+    def advance_if_current_phase(self, expected_phase: str):
+        """Fast path to the next phase if the machine is still in expected_phase."""
         with self.lock:
-            if self.current_phase != "HINT_PHASE":
+            if self.current_phase != expected_phase:
                 return False
-        self._advance_to("GUESS_PHASE")
+            next_phase = self._compute_next(self.current_phase)
+        self._advance_to(next_phase)
         return True
 
     @property

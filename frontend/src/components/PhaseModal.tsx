@@ -48,6 +48,8 @@ interface PhaseModalProps {
   exchangeTarget: string
   onExchangeTargetChange: (v: string) => void
   onExchangeRequest: () => void
+  onExchangeSkip: () => void
+  exchangeSkipped: boolean
   // SPY
   spyTargets: string[]                      // list of exchange_ids (opaque strings)
   selectedSpyTarget: string
@@ -267,6 +269,8 @@ interface ExchangeVariantProps {
   exchangeTarget: string
   onExchangeTargetChange: (v: string) => void
   onExchangeRequest: () => void
+  onExchangeSkip: () => void
+  exchangeSkipped: boolean
 }
 
 function ExchangeVariant({
@@ -284,6 +288,8 @@ function ExchangeVariant({
   exchangeTarget,
   onExchangeTargetChange,
   onExchangeRequest,
+  onExchangeSkip,
+  exchangeSkipped,
 }: ExchangeVariantProps) {
   const isRequester = myExchangeId !== null
   const otherPlayers = players.filter((p) => p.player_id !== myPlayerId)
@@ -371,12 +377,17 @@ function ExchangeVariant({
   // Idle: no request sent or received — show initiation UI
   return (
     <>
-      <p className="phase-modal-status-text">Solicite uma troca de dica privada com outro jogador:</p>
+      <p className="phase-modal-status-text">
+        {exchangeSkipped
+          ? 'Troca dispensada. Aguardando os outros jogadores...'
+          : 'Solicite uma troca de dica privada com outro jogador:'}
+      </p>
       <label className="panel-field">
         <span className="panel-label-text">Trocar com:</span>
         <select
           value={exchangeTarget}
           onChange={(e) => onExchangeTargetChange(e.target.value)}
+          disabled={exchangeSkipped}
           className="panel-input"
         >
           <option value="">Selecione um jogador</option>
@@ -388,10 +399,18 @@ function ExchangeVariant({
       <button
         type="button"
         onClick={onExchangeRequest}
-        disabled={!exchangeTarget}
+        disabled={!exchangeTarget || exchangeSkipped}
         className="panel-btn-primary"
       >
         Solicitar Troca
+      </button>
+      <button
+        type="button"
+        onClick={onExchangeSkip}
+        disabled={exchangeSkipped}
+        className="panel-btn-skip"
+      >
+        {exchangeSkipped ? 'Troca dispensada' : 'Não trocar'}
       </button>
     </>
   )
@@ -485,6 +504,8 @@ export default function PhaseModal(props: PhaseModalProps) {
     exchangeTarget,
     onExchangeTargetChange,
     onExchangeRequest,
+    onExchangeSkip,
+    exchangeSkipped,
     spyTargets,
     selectedSpyTarget,
     onSpyTargetSelect,
@@ -545,6 +566,8 @@ export default function PhaseModal(props: PhaseModalProps) {
           exchangeTarget={exchangeTarget}
           onExchangeTargetChange={onExchangeTargetChange}
           onExchangeRequest={onExchangeRequest}
+          onExchangeSkip={onExchangeSkip}
+          exchangeSkipped={exchangeSkipped}
         />
       )}
 

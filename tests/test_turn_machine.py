@@ -54,7 +54,7 @@ def test_phase_cycle():
     completed_exchanges is empty. We inject a fake completed exchange so the full
     PHASE_SEQUENCE (including SPY_PHASE) is exercised.
     """
-    from server.turn_state import TurnState
+    from server.turn_state import ExchangeRecord, TurnState
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM1", max_turns=1, broadcaster=broadcaster)
 
@@ -65,7 +65,9 @@ def test_phase_cycle():
     tm.advance_phase_manual()     # EXCHANGE_PHASE
     # Inject a completed exchange AFTER entering EXCHANGE_PHASE so SPY_PHASE is not skipped
     if tm.current_turn_state is None:
-        tm.current_turn_state = TurnState(turn_number=1, player_ids=[])
+        tm.current_turn_state = TurnState(turn_number=1, player_ids=["p1", "p2", "p3"])
+    tm.current_turn_state.player_ids = ["p1", "p2", "p3"]
+    tm.current_turn_state.exchanges["fake-exid"] = ExchangeRecord("p1", "p2", status="completed")
     tm.current_turn_state.completed_exchanges.append("fake-exid")
     tm.advance_phase_manual()     # SPY_PHASE (D-06, completed_exchanges non-empty)
     tm.advance_phase_manual()     # SCORING_PHASE
@@ -178,7 +180,7 @@ def test_game_ended_after_last_turn():
     Phase 5 note: With empty completed_exchanges, EXCHANGE_PHASE → SCORING_PHASE (D-06),
     so SPY_PHASE is skipped. Adjust call count accordingly.
     """
-    from server.turn_state import TurnState
+    from server.turn_state import ExchangeRecord, TurnState
     broadcaster = FakeBroadcaster()
     tm = TurnMachine("ROOM5", max_turns=1, broadcaster=broadcaster)
 
@@ -188,7 +190,9 @@ def test_game_ended_after_last_turn():
     tm.advance_phase_manual()     # EXCHANGE_PHASE
     # Inject a completed exchange AFTER entering EXCHANGE_PHASE so SPY_PHASE is not skipped
     if tm.current_turn_state is None:
-        tm.current_turn_state = TurnState(turn_number=1, player_ids=[])
+        tm.current_turn_state = TurnState(turn_number=1, player_ids=["p1", "p2", "p3"])
+    tm.current_turn_state.player_ids = ["p1", "p2", "p3"]
+    tm.current_turn_state.exchanges["fake-exid"] = ExchangeRecord("p1", "p2", status="completed")
     tm.current_turn_state.completed_exchanges.append("fake-exid")
     tm.advance_phase_manual()     # SPY_PHASE (D-06, completed_exchanges non-empty)
     tm.advance_phase_manual()     # SCORING_PHASE

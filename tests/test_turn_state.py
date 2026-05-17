@@ -134,6 +134,18 @@ def test_skip_guess():
     )
 
 
+def test_all_guesses_auto_advance():
+    """GUESS-03: all guessed/skipped players auto-advance to EXCHANGE_PHASE."""
+    server, session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
+
+    server.submit_guess(player_id, other_id, "bicicleta")
+    server.skip_guess(other_id)
+
+    assert session.turn_machine.current_phase == "EXCHANGE_PHASE", (
+        f"all guesses should auto-advance to EXCHANGE_PHASE, got {session.turn_machine.current_phase}"
+    )
+
+
 def test_guess_result_broadcast():
     """GUESS-04: GUESS_RESULT includes is_correct and guesser_id."""
     server, _session, player_id, other_id = _server_with_turn_state("GUESS_PHASE")
@@ -265,6 +277,7 @@ def test_turn_state_new_fields_defaults():
     assert ts.exchange_participants == set(), (
         f"exchange_participants should default to set(), got {ts.exchange_participants}"
     )
+    assert ts.exchange_skips == set(), f"exchange_skips should default to set(), got {ts.exchange_skips}"
     assert ts.spy_attempts == set(), f"spy_attempts should default to set(), got {ts.spy_attempts}"
 
 

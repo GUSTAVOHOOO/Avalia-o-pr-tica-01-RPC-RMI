@@ -612,6 +612,8 @@ class GameServer:
         """Submit one guess for another player's object."""
         broadcast_data = None
         is_correct = False
+        turn_machine = None
+        should_advance = False
 
         with self.lock:
             room_code = self._player_to_room.get(player_id)
@@ -645,14 +647,20 @@ class GameServer:
                 "matched_word": matched_word,   # D-05: canonical target when correct, None otherwise
                 "match_type": match_type,       # D-05/D-06: 'exact'|'synonym'|'fallback'
             }
+            should_advance = turn_state.all_guesses_submitted()
 
         failed = self.broadcaster.broadcast("guess_result", broadcast_data)
         if failed:
             self._remove_failed_players(failed)
+        if should_advance:
+            turn_machine.advance_if_current_phase("GUESS_PHASE")
         return {"ok": True, "is_correct": is_correct}
 
     def skip_guess(self, player_id: str) -> dict:
         """Record that a player skipped their guess for this turn."""
+        turn_machine = None
+        should_advance = False
+
         with self.lock:
             room_code = self._player_to_room.get(player_id)
             session = self.sessions.get(room_code) if room_code else None
@@ -667,6 +675,9 @@ class GameServer:
             if player_id in turn_state.guesses_made:
                 return {"error": "already_guessed"}
             turn_state.guesses_made[player_id] = None
+            should_advance = turn_state.all_guesses_submitted()
+        if should_advance:
+            turn_machine.advance_if_current_phase("GUESS_PHASE")
         return {"ok": True}
 
     def request_exchange(self, player_id: str, target_player_id: str) -> dict:
@@ -698,6 +709,10 @@ class GameServer:
                 return {"error": "turn_not_started"}
             if player_id == target_player_id:
                 return {"error": "cannot_exchange_with_self"}
+            if player_id in turn_state.exchange_skips:
+                return {"error": "already_skipped_exchange"}
+            if target_player_id in turn_state.exchange_skips:
+                return {"error": "target_skipped_exchange"}
             if player_id in turn_state.exchange_participants:
                 return {"error": "already_used_exchange"}
             if target_player_id in turn_state.exchange_participants:
@@ -724,6 +739,33 @@ class GameServer:
         self.broadcaster.send_to_player(target_player_id, "exchange_requested", broadcast_data)
         return {"ok": True, "exchange_id": exchange_id}
 
+    def skip_exchange(self, player_id: str) -> dict:
+        """Record that a player will not request or accept a private exchange this turn."""
+        turn_machine = None
+        should_advance = False
+
+        with self.lock:
+            room_code = self._player_to_room.get(player_id)
+            session = self.sessions.get(room_code) if room_code else None
+            if session is None or session.turn_machine is None:
+                return {"error": "session_not_found"}
+            turn_machine = session.turn_machine
+            if turn_machine.current_phase != "EXCHANGE_PHASE":
+                return {"error": "invalid_phase"}
+            turn_state = turn_machine.current_turn_state
+            if turn_state is None:
+                return {"error": "turn_not_started"}
+            if player_id in turn_state.exchange_participants:
+                return {"error": "already_used_exchange"}
+            if player_id in turn_state.exchange_skips:
+                return {"ok": True, "duplicate": True}
+            turn_state.exchange_skips.add(player_id)
+            should_advance = turn_state.exchange_phase_complete()
+
+        if should_advance:
+            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
+        return {"ok": True}
+
     def respond_exchange(self, player_id: str, exchange_id: str, accept: bool) -> dict:
         """Accept or reject an incoming exchange request.
 
@@ -739,6 +781,11 @@ class GameServer:
             {"ok": True}  on success
             {"error": str}  on validation failure
         """
+        requester_notice = None
+
+        turn_machine = None
+        should_advance = False
+
         with self.lock:
             room_code = self._player_to_room.get(player_id)
             session = self.sessions.get(room_code) if room_code else None
@@ -759,11 +806,22 @@ class GameServer:
                 return {"error": "exchange_not_pending"}  # Pitfall 6
 
             record.status = "accepted" if accept else "rejected"
+            requester_notice = {
+                "target_player_id": record.requester_id,
+                "room_code": room_code,
+                "exchange_id": exchange_id,
+            }
             if not accept:
                 # Release slots so both players can exchange with others this turn
                 turn_state.exchange_participants.discard(record.requester_id)
                 turn_state.exchange_participants.discard(record.target_id)
+                should_advance = turn_state.exchange_phase_complete()
 
+        if requester_notice is not None:
+            event_type = "exchange_accepted" if accept else "exchange_rejected"
+            self.broadcaster.send_to_player(requester_notice["target_player_id"], event_type, requester_notice)
+        if should_advance:
+            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
         return {"ok": True}
 
     def submit_exchange_hint(self, player_id: str, exchange_id: str, hint_word: str) -> dict:
@@ -785,6 +843,8 @@ class GameServer:
         """
         broadcast_data = None
         private_deliveries = []
+        turn_machine = None
+        should_advance = False
 
         with self.lock:
             room_code = self._player_to_room.get(player_id)
@@ -842,6 +902,7 @@ class GameServer:
                         "hint_word": record.requester_hint,
                     }),
                 ]
+                should_advance = turn_state.exchange_phase_complete()
 
         # All broadcasts OUTSIDE the lock (Pitfall 1)
         if broadcast_data:
@@ -850,6 +911,8 @@ class GameServer:
                 self._remove_failed_players(failed)
         for target_id, event_type, data in private_deliveries:
             self.broadcaster.send_to_player(target_id, event_type, data)
+        if should_advance:
+            turn_machine.advance_if_current_phase("EXCHANGE_PHASE")
         return {"ok": True}
 
     def attempt_spy(self, player_id: str, exchange_id: str) -> dict:
@@ -874,6 +937,8 @@ class GameServer:
         """
         discovered_data = None
         success_data = None
+        turn_machine = None
+        should_advance = False
 
         with self.lock:
             room_code = self._player_to_room.get(player_id)
@@ -896,6 +961,7 @@ class GameServer:
                 return {"error": "cannot_spy_own_exchange"}  # SPY-04
 
             turn_state.spy_attempts.add(player_id)
+            should_advance = turn_state.all_spy_attempts_submitted()
             player_name = next(
                 (p.player_name for p in session.players if p.player_id == player_id), player_id
             )
@@ -927,9 +993,13 @@ class GameServer:
             failed = self.broadcaster.broadcast("spy_discovered", discovered_data)
             if failed:
                 self._remove_failed_players(failed)
+            if should_advance:
+                turn_machine.advance_if_current_phase("SPY_PHASE")
             return {"ok": True, "discovered": True}
         else:
             self.broadcaster.send_to_player(player_id, "spy_success", success_data)
+            if should_advance:
+                turn_machine.advance_if_current_phase("SPY_PHASE")
             return {"ok": True, "discovered": False}
 
     def get_scores(self, player_id: str) -> dict:
