@@ -1,0 +1,9 @@
+sequenceDiagram
+  participant BR as Browser (React)
+  participant BG as Bridge (Flask-SocketIO)
+  participant GS as GameServer (Pyro5)
+
+  BR->>BG: socket.emit('submit_hint', {hint_word})
+  BG->>GS: proxy.submit_hint(player_id, hint_word) via Pyro5 RPC
+  GS->>BG: @oneway on_hint_received(data) para todos callbacks
+  BG->>BR: socketio.emit('hint_received', data, to=room_code)

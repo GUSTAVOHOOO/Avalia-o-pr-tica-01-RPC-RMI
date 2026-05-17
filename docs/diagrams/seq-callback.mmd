@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant B as Bridge
+  participant NS as Name Server
+  participant GS as GameServer
+
+  B->>NS: locate_ns()
+  B->>GS: register_callback(player_id, callback_uri)
+  GS-->>B: {"ok": true}
+  Note over GS,B: BridgeCallbackReceiver URI registrada
+  GS->>B: @oneway on_phase_changed(data)
+  B->>B: socketio.emit("phase_changed", data, to=room_code)
