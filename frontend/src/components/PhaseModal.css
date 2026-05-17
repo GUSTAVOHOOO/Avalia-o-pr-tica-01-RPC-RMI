@@ -1,0 +1,78 @@
+/* ─── PhaseModal overlay ─────────────────────────────────────────────────── */
+/* NOTE: .panel-* classes are defined in GameScreen.css and are globally     */
+/* available. Do NOT redefine them here.                                     */
+/* NOTE: @keyframes slideInFromBottom is defined in GameScreen.css.          */
+/* Do NOT redefine it here.                                                  */
+
+.phase-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Surface card — matches #1a1d27 card pattern from GameScreen.css */
+.phase-modal-surface {
+  background-color: #1a1d27;
+  border: 1px solid #2d3148;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  animation: slideInFromBottom 250ms ease-out;
+}
+
+/* Header row: PhaseBadge + title */
+.phase-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.phase-modal-title {
+  color: #f1f5f9;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Risk warning text for SPY variant */
+.phase-modal-risk-text {
+  color: #ef4444;
+  font-size: 14px;
+  margin: 0 0 8px 0;
+}
+
+/* Status text for EXCHANGE requester messages */
+.phase-modal-status-text {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+/* SPY target list */
+.phase-modal-spy-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px 0;
+}
+
+.phase-modal-spy-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #2d3148;
+  margin-bottom: 6px;
+}
+
+.phase-modal-spy-item--selected {
+  border-color: #6366f1;
+  background-color: rgba(99, 102, 241, 0.1);
+}
