@@ -163,6 +163,7 @@ export default function GameScreen() {
   const [exchangeStatus, setExchangeStatus] = useState<string | null>(null)
   const [exchangeHintInput, setExchangeHintInput] = useState('')
   const [exchangeHintSubmitted, setExchangeHintSubmitted] = useState(false)
+  const [exchangeTarget, setExchangeTarget] = useState('')
   const [selectedSpyTarget, setSelectedSpyTarget] = useState('')
   const [spyTargets, setSpyTargets] = useState<string[]>([])
   const [spyAttempted, setSpyAttempted] = useState(false)
@@ -201,6 +202,7 @@ export default function GameScreen() {
         setExchangeStatus(null)
         setExchangeHintInput('')
         setExchangeHintSubmitted(false)
+        setExchangeTarget('')
         setSelectedSpyTarget('')
         setSpyAttempted(false)
         setDeltaToasts([])
@@ -381,6 +383,16 @@ export default function GameScreen() {
     setMyGuessSubmitted(true)
   }
 
+  function requestExchange() {
+    if (!exchangeTarget) return
+    socket.emit('request_exchange', { target_player_id: exchangeTarget }, (result: { exchange_id?: string } | undefined) => {
+      if (result?.exchange_id) setMyExchangeId(result.exchange_id)
+      else setMyExchangeId(exchangeTarget) // fallback — track that we initiated
+    })
+    setExchangeTarget('')
+    setExchangeStatus('pending')
+  }
+
   function respondExchange(accept: boolean) {
     if (!exchangeRequest) return
     socket.emit('respond_exchange', { exchange_id: exchangeRequest.exchange_id, accept }, () => undefined)
@@ -415,44 +427,37 @@ export default function GameScreen() {
           <span className="player-left-toast__text">{playerLeftMsg}</span>
         </div>
       )}
+
       <div className="game-screen__header">
         <div>{currentPhase !== null && <PhaseBadge phase={currentPhase} />}</div>
-
         <div>
           {!gameEnded && currentPhase !== null && (
             <CountdownDisplay seconds={remainingSeconds} />
           )}
         </div>
-
-        <span
-          className="game-screen__turn"
-          aria-label={`Turno ${currentTurn} de ${maxTurns}`}
-        >
+        <span className="game-screen__turn" aria-label={`Turno ${currentTurn} de ${maxTurns}`}>
           Turno {currentTurn} de {maxTurns}
         </span>
       </div>
 
       <div className="game-screen__body">
-        <div className="game-screen__content">
+        {/* ─── Main column ─── */}
+        <div className="game-screen__main">
           {gameEnded ? (
-            <p className="game-screen__status">
-              Jogo encerrado. Aguardando tela de resultados...
-            </p>
+            <p className="game-screen__status">Jogo encerrado. Aguardando tela de resultados...</p>
           ) : connectionError !== null ? (
-            <p className="game-screen__status game-screen__status--error">
-              {connectionError}
-            </p>
+            <p className="game-screen__status game-screen__status--error">{connectionError}</p>
           ) : currentPhase === null ? (
             <p className="game-screen__status">Conectando...</p>
           ) : (
             <>
-              {/* Secret image for action phases (not scoring) */}
-              {currentPhase !== 'SCORING_PHASE' && ACTION_PHASES.includes(currentPhase) && (
+              {/* Secret image — always visible during action phases */}
+              {ACTION_PHASES.includes(currentPhase) && (
                 <SecretImagePanel assignment={myObjectAssignment} />
               )}
 
-              {/* Phase modal overlay for the 4 action phases */}
-              <div style={{ position: 'relative' }}>
+              {/* Phase action panel — inline card, no overlay; key triggers fade on phase change */}
+              <div key={currentPhase} className="phase-fade-in" style={{ position: 'relative' }}>
                 <PhaseModal
                   phase={currentPhase}
                   players={players}
@@ -481,6 +486,9 @@ export default function GameScreen() {
                   onExchangeDecline={() => respondExchange(false)}
                   onExchangeHintSubmit={submitExchangeHint}
                   exchangeHintSubmitted={exchangeHintSubmitted}
+                  exchangeTarget={exchangeTarget}
+                  onExchangeTargetChange={setExchangeTarget}
+                  onExchangeRequest={requestExchange}
                   spyTargets={spyTargets}
                   selectedSpyTarget={selectedSpyTarget}
                   onSpyTargetSelect={setSelectedSpyTarget}
@@ -492,33 +500,24 @@ export default function GameScreen() {
                 ))}
               </div>
 
-              {/* Scoring phase inline view */}
+              {/* Scoring phase */}
               {currentPhase === 'SCORING_PHASE' && (
-                <section className="phase-panel phase-panel--scoring" style={{ position: 'relative' }}>
-                  <h2 className="phase-panel__title">Pontuacao do Turno</h2>
+                <section key="scoring" className="phase-panel phase-panel--scoring phase-fade-in" style={{ position: 'relative' }}>
+                  <h2 className="phase-panel__title">Pontuação do Turno</h2>
                   {deltaToasts.map((t) => (
                     <ScoreDeltaToast key={t.id} id={t.id} delta={t.delta} playerName={t.playerName} onDone={removeToast} />
                   ))}
                   {scores.length === 0 ? (
-                    <p className="score-calculating">Calculando pontuacao...</p>
+                    <p className="score-calculating">Calculando pontuação...</p>
                   ) : (
                     <div className="score-list">
                       {scores.map((score) => (
                         <div
                           key={score.player_id}
-                          className={[
-                            'score-row',
-                            score.player_id === myPlayerId ? 'score-row--mine' : '',
-                          ].join(' ').trim()}
+                          className={['score-row', score.player_id === myPlayerId ? 'score-row--mine' : ''].join(' ').trim()}
                         >
                           <span className="score-row__name">{score.player_name}</span>
-                          <span
-                            className={[
-                              'score-row__delta',
-                              score.turn_delta > 0 ? 'score-row__delta--positive' : '',
-                              score.turn_delta < 0 ? 'score-row__delta--negative' : '',
-                            ].join(' ').trim()}
-                          >
+                          <span className={['score-row__delta', score.turn_delta > 0 ? 'score-row__delta--positive' : '', score.turn_delta < 0 ? 'score-row__delta--negative' : ''].join(' ').trim()}>
                             {formatDelta(score.turn_delta)}
                           </span>
                           <span className="score-row__total">Total: {score.total}</span>
@@ -529,20 +528,24 @@ export default function GameScreen() {
                 </section>
               )}
 
-              {/* Passive status for non-action, non-scoring phases */}
+              {/* Passive status */}
               {!ACTION_PHASES.includes(currentPhase) && currentPhase !== 'SCORING_PHASE' && (
-                <p className="game-screen__status">
-                  {passiveStatus[currentPhase] ?? 'Aguardando proxima fase...'}
+                <p className="game-screen__status phase-fade-in">
+                  {passiveStatus[currentPhase] ?? 'Aguardando próxima fase...'}
                 </p>
               )}
             </>
           )}
+        </div>
+
+        {/* ─── Chat sidebar ─── */}
+        <aside className="game-screen__sidebar">
           <ChatPanel
             messages={chatMessages}
             myPlayerId={myPlayerId}
             onSend={sendChatMessage}
           />
-        </div>
+        </aside>
       </div>
     </div>
   )

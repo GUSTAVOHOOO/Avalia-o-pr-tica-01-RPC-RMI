@@ -26,11 +26,11 @@
 /* Scrollable message list */
 .chat-panel__messages {
   overflow-y: auto;
-  max-height: 240px;
+  max-height: 400px;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 48px;
 }
 
 /* Single message row */

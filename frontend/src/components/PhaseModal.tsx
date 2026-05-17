@@ -45,6 +45,9 @@ interface PhaseModalProps {
   onExchangeDecline: () => void
   onExchangeHintSubmit: () => void
   exchangeHintSubmitted: boolean
+  exchangeTarget: string
+  onExchangeTargetChange: (v: string) => void
+  onExchangeRequest: () => void
   // SPY
   spyTargets: string[]                      // list of exchange_ids (opaque strings)
   selectedSpyTarget: string
@@ -251,6 +254,7 @@ function GuessVariant({
 
 interface ExchangeVariantProps {
   players: Player[]
+  myPlayerId: string
   exchangeRequest: ExchangeRequest | null
   myExchangeId: string | null
   exchangeStatus: string | null
@@ -260,10 +264,14 @@ interface ExchangeVariantProps {
   onExchangeDecline: () => void
   onExchangeHintSubmit: () => void
   exchangeHintSubmitted: boolean
+  exchangeTarget: string
+  onExchangeTargetChange: (v: string) => void
+  onExchangeRequest: () => void
 }
 
 function ExchangeVariant({
   players,
+  myPlayerId,
   exchangeRequest,
   myExchangeId,
   exchangeStatus,
@@ -273,46 +281,50 @@ function ExchangeVariant({
   onExchangeDecline,
   onExchangeHintSubmit,
   exchangeHintSubmitted,
+  exchangeTarget,
+  onExchangeTargetChange,
+  onExchangeRequest,
 }: ExchangeVariantProps) {
   const isRequester = myExchangeId !== null
+  const otherPlayers = players.filter((p) => p.player_id !== myPlayerId)
 
-  if (isRequester) {
-    // Requester view: show status and hint field if accepted
-    if (exchangeStatus === 'accepted') {
-      return (
-        <>
-          <p className="phase-modal-status-text">Troca aceita! Envie sua dica privada.</p>
-          <label className="panel-field">
-            <span className="panel-label-text">Dica privada</span>
-            <input
-              type="text"
-              maxLength={30}
-              value={exchangeHintInput}
-              onChange={(e) => onExchangeHintChange(e.target.value)}
-              disabled={exchangeHintSubmitted}
-              placeholder="Uma palavra..."
-              className="panel-input"
-              aria-label="Dica privada de troca"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={onExchangeHintSubmit}
-            disabled={!exchangeHintInput.trim() || exchangeHintSubmitted}
-            className="panel-btn-primary"
-          >
-            {exchangeHintSubmitted ? 'Dica enviada' : 'Enviar dica privada'}
-          </button>
-        </>
-      )
-    }
+  // Requester: waiting for reply
+  if (isRequester && exchangeStatus !== 'accepted') {
+    return <p className="phase-modal-status-text">Aguardando resposta da solicitação...</p>
+  }
+
+  // Both sides: accepted — show private hint form
+  if (isRequester && exchangeStatus === 'accepted') {
     return (
-      <p className="phase-modal-status-text">Aguardando resposta...</p>
+      <>
+        <p className="phase-modal-status-text">Troca aceita! Envie sua dica privada.</p>
+        <label className="panel-field">
+          <span className="panel-label-text">Dica privada</span>
+          <input
+            type="text"
+            maxLength={30}
+            value={exchangeHintInput}
+            onChange={(e) => onExchangeHintChange(e.target.value)}
+            disabled={exchangeHintSubmitted}
+            placeholder="Uma palavra..."
+            className="panel-input"
+            aria-label="Dica privada de troca"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={onExchangeHintSubmit}
+          disabled={!exchangeHintInput.trim() || exchangeHintSubmitted}
+          className="panel-btn-primary"
+        >
+          {exchangeHintSubmitted ? 'Dica enviada' : 'Enviar dica privada'}
+        </button>
+      </>
     )
   }
 
+  // Recipient: incoming request
   if (!isRequester && exchangeRequest !== null) {
-    // Recipient view: show Aceitar/Recusar buttons
     const requesterDisplayName = playerName(players, exchangeRequest.requester_id)
     return (
       <>
@@ -320,18 +332,10 @@ function ExchangeVariant({
           {requesterDisplayName} quer trocar dicas com você.
         </p>
         <div className="panel-btn-row">
-          <button
-            type="button"
-            onClick={onExchangeAccept}
-            className="panel-btn-primary panel-btn-primary--flex"
-          >
+          <button type="button" onClick={onExchangeAccept} className="panel-btn-primary panel-btn-primary--flex">
             Aceitar
           </button>
-          <button
-            type="button"
-            onClick={onExchangeDecline}
-            className="panel-btn-skip"
-          >
+          <button type="button" onClick={onExchangeDecline} className="panel-btn-skip">
             Recusar
           </button>
         </div>
@@ -364,9 +368,32 @@ function ExchangeVariant({
     )
   }
 
-  // Neither requester nor recipient
+  // Idle: no request sent or received — show initiation UI
   return (
-    <p className="phase-modal-status-text">Aguardando fase de troca...</p>
+    <>
+      <p className="phase-modal-status-text">Solicite uma troca de dica privada com outro jogador:</p>
+      <label className="panel-field">
+        <span className="panel-label-text">Trocar com:</span>
+        <select
+          value={exchangeTarget}
+          onChange={(e) => onExchangeTargetChange(e.target.value)}
+          className="panel-input"
+        >
+          <option value="">Selecione um jogador</option>
+          {otherPlayers.map((p) => (
+            <option key={p.player_id} value={p.player_id}>{p.player_name}</option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="button"
+        onClick={onExchangeRequest}
+        disabled={!exchangeTarget}
+        className="panel-btn-primary"
+      >
+        Solicitar Troca
+      </button>
+    </>
   )
 }
 
@@ -455,6 +482,9 @@ export default function PhaseModal(props: PhaseModalProps) {
     onExchangeDecline,
     onExchangeHintSubmit,
     exchangeHintSubmitted,
+    exchangeTarget,
+    onExchangeTargetChange,
+    onExchangeRequest,
     spyTargets,
     selectedSpyTarget,
     onSpyTargetSelect,
@@ -466,65 +496,67 @@ export default function PhaseModal(props: PhaseModalProps) {
   if (!ACTION_PHASES.includes(phase)) return null
 
   return (
-    <div className="phase-modal-overlay">
-      <div className="phase-modal-surface">
-        <div className="phase-modal-header">
-          <PhaseBadge phase={phase} />
-          <h2 className="phase-modal-title">{PHASE_TITLES[phase]}</h2>
-        </div>
-
-        {phase === 'HINT_PHASE' && (
-          <HintVariant
-            hintInput={hintInput}
-            onHintChange={onHintChange}
-            onHintSubmit={onHintSubmit}
-            hintSubmitted={hintSubmitted}
-            hintsCount={hintsCount}
-            totalPlayers={totalPlayers}
-          />
-        )}
-
-        {phase === 'GUESS_PHASE' && (
-          <GuessVariant
-            players={players}
-            myPlayerId={myPlayerId}
-            hints={hints}
-            guessTarget={guessTarget}
-            onGuessTargetChange={onGuessTargetChange}
-            guessInput={guessInput}
-            onGuessInputChange={onGuessInputChange}
-            onGuessSubmit={onGuessSubmit}
-            onGuessSkip={onGuessSkip}
-            guessSubmitted={guessSubmitted}
-            guessIsCorrect={guessIsCorrect}
-          />
-        )}
-
-        {phase === 'EXCHANGE_PHASE' && (
-          <ExchangeVariant
-            players={players}
-            exchangeRequest={exchangeRequest}
-            myExchangeId={myExchangeId}
-            exchangeStatus={exchangeStatus}
-            exchangeHintInput={exchangeHintInput}
-            onExchangeHintChange={onExchangeHintChange}
-            onExchangeAccept={onExchangeAccept}
-            onExchangeDecline={onExchangeDecline}
-            onExchangeHintSubmit={onExchangeHintSubmit}
-            exchangeHintSubmitted={exchangeHintSubmitted}
-          />
-        )}
-
-        {phase === 'SPY_PHASE' && (
-          <SpyVariant
-            spyTargets={spyTargets}
-            selectedSpyTarget={selectedSpyTarget}
-            onSpyTargetSelect={onSpyTargetSelect}
-            onSpyAttempt={onSpyAttempt}
-            spyAttempted={spyAttempted}
-          />
-        )}
+    <div className="phase-modal-surface">
+      <div className="phase-modal-header">
+        <PhaseBadge phase={phase} />
+        <h2 className="phase-modal-title">{PHASE_TITLES[phase]}</h2>
       </div>
+
+      {phase === 'HINT_PHASE' && (
+        <HintVariant
+          hintInput={hintInput}
+          onHintChange={onHintChange}
+          onHintSubmit={onHintSubmit}
+          hintSubmitted={hintSubmitted}
+          hintsCount={hintsCount}
+          totalPlayers={totalPlayers}
+        />
+      )}
+
+      {phase === 'GUESS_PHASE' && (
+        <GuessVariant
+          players={players}
+          myPlayerId={myPlayerId}
+          hints={hints}
+          guessTarget={guessTarget}
+          onGuessTargetChange={onGuessTargetChange}
+          guessInput={guessInput}
+          onGuessInputChange={onGuessInputChange}
+          onGuessSubmit={onGuessSubmit}
+          onGuessSkip={onGuessSkip}
+          guessSubmitted={guessSubmitted}
+          guessIsCorrect={guessIsCorrect}
+        />
+      )}
+
+      {phase === 'EXCHANGE_PHASE' && (
+        <ExchangeVariant
+          players={players}
+          myPlayerId={myPlayerId}
+          exchangeRequest={exchangeRequest}
+          myExchangeId={myExchangeId}
+          exchangeStatus={exchangeStatus}
+          exchangeHintInput={exchangeHintInput}
+          onExchangeHintChange={onExchangeHintChange}
+          onExchangeAccept={onExchangeAccept}
+          onExchangeDecline={onExchangeDecline}
+          onExchangeHintSubmit={onExchangeHintSubmit}
+          exchangeHintSubmitted={exchangeHintSubmitted}
+          exchangeTarget={exchangeTarget}
+          onExchangeTargetChange={onExchangeTargetChange}
+          onExchangeRequest={onExchangeRequest}
+        />
+      )}
+
+      {phase === 'SPY_PHASE' && (
+        <SpyVariant
+          spyTargets={spyTargets}
+          selectedSpyTarget={selectedSpyTarget}
+          onSpyTargetSelect={onSpyTargetSelect}
+          onSpyAttempt={onSpyAttempt}
+          spyAttempted={spyAttempted}
+        />
+      )}
     </div>
   )
 }

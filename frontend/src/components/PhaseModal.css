@@ -1,28 +1,16 @@
-/* ─── PhaseModal overlay ─────────────────────────────────────────────────── */
+/* ─── PhaseModal — inline panel (no overlay) ─────────────────────────────── */
 /* NOTE: .panel-* classes are defined in GameScreen.css and are globally     */
 /* available. Do NOT redefine them here.                                     */
-/* NOTE: @keyframes slideInFromBottom is defined in GameScreen.css.          */
-/* Do NOT redefine it here.                                                  */
+/* NOTE: @keyframes slideInFromBottom / phaseFadeIn in GameScreen.css.       */
 
-.phase-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Surface card — matches #1a1d27 card pattern from GameScreen.css */
+/* Inline card — same card pattern as phase-panel in GameScreen.css */
 .phase-modal-surface {
   background-color: #1a1d27;
   border: 1px solid #2d3148;
   border-radius: 12px;
-  padding: 24px;
-  max-width: 480px;
+  padding: 20px;
   width: 100%;
-  animation: slideInFromBottom 250ms ease-out;
+  animation: phaseFadeIn 200ms ease-out;
 }
 
 /* Header row: PhaseBadge + title */

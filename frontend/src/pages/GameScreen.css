@@ -21,22 +21,32 @@
   color: #6b7280;
 }
 
-/* Body / content area */
+/* Body / content area — two-column layout */
 .game-screen__body {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-grow: 1;
-  padding: 32px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px;
+  min-height: calc(100vh - 49px);
+  box-sizing: border-box;
 }
 
-/* Inner content wrapper */
-.game-screen__content {
-  max-width: 640px;
-  margin: 0 auto;
+/* Main game column (image + phase panel + scoring) */
+.game-screen__main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Chat sidebar */
+.game-screen__sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
 }
 
 /* Status messages (connecting / waiting / ended) */
@@ -55,24 +65,25 @@
   background-color: #1a1d27;
   border: 1px solid #2d3148;
   border-radius: 12px;
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
 .secret-image-panel__img {
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   object-fit: contain;
   border-radius: 8px;
   background-color: #0f1117;
+  flex-shrink: 0;
 }
 
 .secret-image-panel__placeholder {
-  width: 160px;
-  height: 160px;
+  width: 120px;
+  height: 120px;
   border: 1px dashed #2d3148;
   border-radius: 8px;
   background-color: #0f1117;
@@ -305,6 +316,16 @@
 }
 
 /* ─── Phase 8 additions ─────────────────────────────────── */
+
+/* Phase transition fade-in — triggered by key={currentPhase} remount */
+@keyframes phaseFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.phase-fade-in {
+  animation: phaseFadeIn 200ms ease-out;
+}
 
 @keyframes slideInFromBottom {
   from {
